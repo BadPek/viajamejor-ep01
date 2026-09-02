@@ -100,13 +100,13 @@ ms-notificaciones hace llegar la información a las personas: consume los evento
 
 ```
 docs/diagramas/
-├── c4/
-│   ├── C4-1-Contexto     el servicio, sus actores y sus vecinos
-│   ├── C4-2-Contenedor   la API, la BD propia y los componentes del dominio
-│   └── C4-3-Componentes  validador/service, clientes, publicador, repos
-├── secuencia/
-│   └── Secuencia-Notificacion   notificación por evento
-└── infraestructura/
-    └── Infra-AWS         despliegue solo de este servicio, con iconos oficiales AWS
+ c4/
+    C4-1-Contexto     el servicio, sus actores y sus vecinos
+    C4-2-Contenedor   la API, la BD propia y los componentes del dominio
+    C4-3-Componentes  validador/service, clientes, publicador, repos
+ secuencia/
+    Secuencia-Notificacion   notificación por evento
+ infraestructura/
+     Infra-AWS         despliegue solo de este servicio, con iconos oficiales AWS
 ```
 

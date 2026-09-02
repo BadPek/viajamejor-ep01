@@ -101,13 +101,13 @@ ms-busqueda administra el catálogo del dominio: publicar, mantener y permitir b
 
 ```
 docs/diagramas/
-├── c4/
-│   ├── C4-1-Contexto     el servicio, sus actores y sus vecinos
-│   ├── C4-2-Contenedor   la API, la BD propia y los componentes del dominio
-│   └── C4-3-Componentes  validador/service, clientes, publicador, repos
-├── secuencia/
-│   └── Secuencia-ResultadoBusqueda   consulta con caché y publicación
-└── infraestructura/
-    └── Infra-AWS         despliegue solo de este servicio, con iconos oficiales AWS
+ c4/
+    C4-1-Contexto     el servicio, sus actores y sus vecinos
+    C4-2-Contenedor   la API, la BD propia y los componentes del dominio
+    C4-3-Componentes  validador/service, clientes, publicador, repos
+ secuencia/
+    Secuencia-ResultadoBusqueda   consulta con caché y publicación
+ infraestructura/
+     Infra-AWS         despliegue solo de este servicio, con iconos oficiales AWS
 ```
 

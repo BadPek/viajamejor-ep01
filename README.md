@@ -1,4 +1,4 @@
-# ✈️ ViajaMejor — Plataforma Cloud Native de Reservas de Viajes (OTA)
+# ViajaMejor — Plataforma Cloud Native de Reservas de Viajes (OTA)
 
 > **Evaluación Parcial N°1 (EP01) — Asignatura: Java: Diseño y Construcción de Soluciones Nativas en Nube (JVY0101)**  
 > **Duoc UC — Escuela de Informática y Telecomunicaciones**  
@@ -6,7 +6,7 @@
 
 ---
 
-## 📌 1. Descripción del Caso de Negocio
+## 1. Descripción del Caso de Negocio
 
 **ViajaMejor** es una plataforma de agencia de viajes en línea (**OTA — Online Travel Agency**) diseñada para consolidar la búsqueda, reserva, pago, emisión y fidelización de itinerarios turísticos multimodales (vuelos, hoteles y arriendo de vehículos).
 
@@ -14,7 +14,7 @@ La solución aborda desafíos de alta concurrencia, picos de tráfico estacional
 
 ---
 
-## 🏛️ 2. Arquitectura de Microservicios
+## 2. Arquitectura de Microservicios
 
 La solución implementa una **Arquitectura Cloud Native desacoplada** con el principio de **Database-per-Service** (cada microservicio posee su propia base de datos relacional aislada para garantizar bajo acoplamiento e independencia de despliegue).
 
@@ -30,24 +30,24 @@ La solución implementa una **Arquitectura Cloud Native desacoplada** con el pri
 
 ---
 
-## 🗺️ 3. Diagramas de Arquitectura y Especificación Cloud
+## 3. Diagramas de Arquitectura y Especificación Cloud
 
 Todos los diagramas oficiales de arquitectura se encuentran documentados y versionados en la carpeta **[`entrega/`](entrega/README.md)**:
 
-### 📐 Modelo C4
+### Modelo C4
 - **[C4 Nivel 1: Contexto del Sistema](entrega/c4/C4-1-Contexto.png)** (`entrega/c4/C4-1-Contexto.puml`) — Actores, límites del sistema y dependencias externas.
 - **[C4 Nivel 2: Contenedores](entrega/c4/C4-2-Contenedores.png)** (`entrega/c4/C4-2-Contenedores.puml`) — Los 7 microservicios, bases de datos aisladas, colas SQS, bus EventBridge y cachés.
 - **[C4 Nivel 3: Componentes ms-reservas](entrega/c4/C4-3-Componentes.png)** (`entrega/c4/C4-3-Componentes.puml`) — Arquitectura interna del microservicio transaccional.
 - **[C4 Nivel 4: Flujo Dinámico Crítico](entrega/c4/C4-4-Dinamico.png)** (`entrega/c4/C4-4-Dinamico.puml`) — Flujo numerado paso a paso desde la búsqueda hasta la emisión final.
 
-### ☁️ Infraestructura Cloud AWS
+### Infraestructura Cloud AWS
 - **[Infraestructura AWS Multi-AZ](entrega/infraestructura/Infra-AWS.png)** (`entrega/infraestructura/Infra-AWS.puml`) — Despliegue en AWS (us-east-1), ECS Fargate, Aurora Serverless, Redis, SQS, EventBridge, Lambda, **Seguridad en rojo (IE7)** y **Monitoreo en azul (IE8)**.
 - **[Topología de Red VPC](entrega/infraestructura/Infra-Red.png)** (`entrega/infraestructura/Infra-Red.puml`) — Segmentación en 3 Zonas de Disponibilidad (AZs), subredes públicas y privadas, NAT Gateways y VPC Endpoints.
 - **[Pipeline CI/CD Blue/Green](entrega/infraestructura/Infra-CICD.png)** (`entrega/infraestructura/Infra-CICD.puml`) — Integración y despliegue continuo con Quality Gates y despliegue Zero-Downtime en ECS Fargate.
 
 ---
 
-## 🛠️ 4. Requisitos y Ejecución Local
+## 4. Requisitos y Ejecución Local
 
 ### Prerrequisitos
 - **Java 21** (OpenJDK 21 / 25 LTS).
@@ -72,7 +72,7 @@ docker compose up -d --build
 
 ---
 
-## 📊 5. Matriz de Cumplimiento de Rúbrica (Duoc UC — EP01)
+## 5. Matriz de Cumplimiento de Rúbrica (Duoc UC — EP01)
 
 | Indicador | Descripción | Implementación en ViajaMejor |
 |---|---|---|
@@ -85,7 +85,7 @@ docker compose up -d --build
 
 ---
 
-## 👥 6. Identificación del Proyecto
+## 6. Identificación del Proyecto
 - **Estudiante**: Andrés
 - **Asignatura**: Java: Diseño y Construcción de Soluciones Nativas en Nube (JVY0101)
 - **Docente**: Mauricio Andrés Velásquez Silva
