@@ -1,0 +1,66 @@
+@startuml Infra-AWS
+' =====================================================================
+' ms-integraciones — Infraestructura AWS (solo este microservicio)
+'   Rojo  = controles de seguridad (IE7)
+'   Azul  = puntos de monitoreo (IE8)
+' =====================================================================
+!include <awslib/all>
+!include <awslib/Groups/VPC.puml>
+!include <awslib/Groups/PrivateSubnet.puml>
+!include <awslib/Groups/SecurityGroup.puml>
+
+title ms-integraciones — Infraestructura AWS (caso caso06 · ViajaMejor)
+
+skinparam defaultTextAlignment center
+skinparam roundCorner 8
+skinparam ArrowColor #37474F
+skinparam nodesep 30
+skinparam ranksep 40
+
+Users(users, "Proveedor externo", "Aerolíneas y hoteles que entregan disponibilidad")
+APIGateway(apigw, "API Gateway", "ruta /api/integraciones\nJWT + throttling")
+Cognito(cognito, "Cognito", "JWT por rol")
+
+VPCGroup(vpc, "VPC ViajaMejor")
+package "Clúster ECS · servicio ms-integraciones (auto scaling 2→20 tareas)" as ecs {
+  Fargate(taskA, "Tarea 1 · us-east-1a", "integraciones-svc")
+  Fargate(taskB, "Tarea 2 · us-east-1b", "integraciones-svc")
+}
+ElasticLoadBalancing(alb, "ALB · target group ms-integraciones", "health check /actuator/health")
+DynamoDB(dyn, "DynamoDB Global Tables", "estado en tiempo real\nlatencia de un dígito")
+SimpleQueueService(sqs, "SQS + DLQ", "ingesta de eventos persistida")
+CloudWatch(cw, "CloudWatch + X-Ray", "métricas, alarmas y trazas\ndel target group")
+KeyManagementService(kms, "KMS", "cifrado at-rest")
+SecretsManager(secrets, "Secrets Manager", "credencial de la BD\n(rotación automática)")
+IdentityAccessManagementPermissions(iam, "IAM task role", "permisos mínimos por tarea")
+CloudTrail(trail, "CloudTrail", "auditoría de administración")
+
+SecurityGroupGroup(sgApp, "SG ms-integraciones")
+
+users --> apigw
+apigw --> alb
+alb --> taskA
+alb --> taskB
+sqs --> taskA : entrega eventos
+sqs --> taskB : entrega eventos
+taskA --> dyn : escritura condicional
+taskB --> dyn : escritura condicional
+taskA .[#1565C0].> cw : logs, métricas y trazas
+cw .[#1565C0].> ecs : alarma CPU/latencia → auto scaling
+apigw .[#B71C1C].> cognito : autenticación (JWT)
+alb .[#B71C1C].> sgApp : SG: solo 443 desde el ALB
+dyn .[#B71C1C].> kms : cifrado at-rest
+taskA .[#B71C1C].> secrets : credenciales sin hardcodear
+taskA .[#B71C1C].> iam : permisos mínimos
+
+legend right
+  |= Elemento |= Decisión (requisito) |
+  | Fargate 2→20 | RNF de escalabilidad: escala solo este servicio en el pico |
+  | DynamoDB | RNF de rendimiento: estado en tiempo real con latencia de un dígito |
+  | SQS + DLQ | RNF de consistencia: ningún evento se pierde |
+  | BD propia | Aislamiento de datos por dominio (IE9/IE10) |
+  |<#B71C1C>|  Controles de seguridad (IE7) |
+  |<#1565C0]|  Puntos de monitoreo (IE8) |
+endlegend
+
+@enduml

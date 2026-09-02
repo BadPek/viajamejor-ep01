@@ -1,0 +1,70 @@
+@startuml Infra-Red
+!include <C4/C4_Deployment>
+
+title ViajaMejor — Topología de Red: VPC Multi-AZ y Segmentación por Capas (us-east-1)
+
+LAYOUT_WITH_LEGEND()
+
+Person(viajero, "Viajeros y Operadores", "Internet")
+
+Deployment_Node(aws, "Amazon Web Services (AWS)", "Región us-east-1") {
+
+  Deployment_Node(edge, "Capa Perimetral (Edge)", "Protección y Entrada") {
+    Deployment_Node(r53, "Amazon Route 53", "DNS Público")
+    Deployment_Node(cf, "Amazon CloudFront + WAF", "CDN Protegida con WAF y Shield")
+    Deployment_Node(apigw, "Amazon API Gateway", "Regional REST API")
+  }
+
+  Deployment_Node(vpc, "VPC ViajaMejor (CIDR: 10.0.0.0/16)", "Aislamiento de Red Multi-AZ") {
+    
+    Deployment_Node(pub_tier, "Subredes Públicas (10.0.1.0/24, 10.0.2.0/24, 10.0.3.0/24)", "3 Zonas de Disponibilidad") {
+      Deployment_Node(alb, "Application Load Balancer (ALB)", "Listener HTTPS :443 interno")
+      Deployment_Node(nat, "NAT Gateways (AZ A, B, C)", "Salida controlada a internet para dependencias")
+    }
+
+    Deployment_Node(app_tier, "Subredes Privadas de Aplicación (10.0.11.0/24, 10.0.12.0/24, 10.0.13.0/24)", "Security Group: Solo puerto 8080 desde ALB") {
+      Container(msA, "ms-reservas (AZ A)", "ECS Fargate Task")
+      Container(msB, "ms-reservas (AZ B)", "ECS Fargate Task")
+      Container(msC, "ms-reservas (AZ C)", "ECS Fargate Task")
+    }
+
+    Deployment_Node(data_tier, "Subredes Privadas de Datos (10.0.21.0/24, 10.0.22.0/24, 10.0.23.0/24)", "Security Group: Solo puerto 5432/6379 desde App") {
+      ContainerDb(aurora, "Amazon Aurora PostgreSQL Multi-AZ", "Writer en AZ A + Readers en AZ B/C")
+      ContainerDb(redis, "Amazon ElastiCache Redis Multi-AZ", "Cluster con replicación automática")
+    }
+
+    Deployment_Node(vpce, "AWS VPC Endpoints (PrivateLink)", "Gateway & Interface Endpoints") {
+      Deployment_Node(ep_sqs, "VPC Endpoint SQS", "Acceso privado sin salir a internet")
+      Deployment_Node(ep_s3, "VPC Endpoint S3", "Acceso privado a almacenamiento")
+      Deployment_Node(ep_sec, "VPC Endpoint Secrets", "Acceso privado a credenciales")
+    }
+  }
+
+  Deployment_Node(mon, "Monitoreo de Red (IE8)", "Observabilidad") {
+    Deployment_Node(flow, "VPC Flow Logs", "Auditoría de paquetes y tráfico de red")
+    Deployment_Node(cw, "Amazon CloudWatch", "Métricas y detección de anomalías")
+  }
+}
+
+Rel(viajero, r53, "Consulta DNS", "HTTPS")
+Rel(r53, cf, "Resuelve tráfico", "HTTPS")
+Rel(cf, apigw, "Enruta a API Gateway", "HTTPS")
+Rel(apigw, alb, "VPC Link Privado", "TLS 1.2+")
+Rel(alb, msA, "Balancea tráfico :8080", "HTTP")
+Rel(alb, msB, "Balancea tráfico :8080", "HTTP")
+Rel(alb, msC, "Balancea tráfico :8080", "HTTP")
+
+Rel(msA, nat, "Salida a APIs externas (Amadeus/Stripe)", "NAT")
+Rel(msA, ep_sqs, "Acceso privado SQS", "AWS PrivateLink")
+Rel(msA, ep_s3, "Acceso privado S3", "AWS PrivateLink")
+
+Rel(msA, aurora, "Transacciones SQL", "JDBC TLS (5432)")
+Rel(msB, aurora, "Transacciones SQL", "JDBC TLS (5432)")
+Rel(msC, aurora, "Transacciones SQL", "JDBC TLS (5432)")
+Rel(msA, redis, "Locks de cupos", "RESP TLS (6379)")
+
+Rel(vpc, flow, "Captura flujo de red", "Flow Logs")
+Rel(flow, cw, "Analiza logs", "CloudWatch Logs")
+
+SHOW_LEGEND()
+@enduml

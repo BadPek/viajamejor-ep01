@@ -1,0 +1,19 @@
+@startuml C4-1-Contexto
+!include <C4/C4_Context>
+
+title ms-notificaciones — C4 Nivel 1: Contexto
+
+LAYOUT_WITH_LEGEND()
+
+System(sys, "ms-notificaciones", "Notificaciones del caso caso06: hace llegar la información a las personas: consume los eventos de dominio publicados por los demás servicios y los entrega por correo electrónico y notificaciones push, sin acoplarse a ningún productor")
+
+System_Ext(core, "ms-reservas", "Reservas del caso (servicio central)")
+System_Ext(cognito, "Amazon Cognito", "Autenticación y JWT por rol")
+System_Ext(bus, "Amazon EventBridge", "Bus de eventos de dominio")
+
+Rel(sys, core, "Reservas del caso (servicio central)", "REST / eventos")
+Rel_Back(cognito, sys, "Autenticación y JWT por rol", "JWT")
+Rel(sys, bus, "Bus de eventos de dominio", "AWS SDK")
+
+SHOW_LEGEND()
+@enduml

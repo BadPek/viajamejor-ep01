@@ -1,0 +1,40 @@
+@startuml S3-Componentes
+!include <C4/C4_Component>
+
+title ms-reservas — C4 Nivel 3: Componentes Internos
+
+LAYOUT_WITH_LEGEND()
+
+Container_Boundary(msRes, "ms-reservas — Spring Boot 3 / Java 21") {
+  Component(ctrl, "ReservaController", "Spring MVC REST Controller", "Expone /api/reservas: endpoints de confirmación, consulta y cancelación")
+  Component(srv, "ReservaService", "Spring Service", "Orquesta la máquina de estados y coordina la saga transaccional de reserva")
+  Component(bloqueo, "BloqueoDisponibilidadService", "Java + Lettuce", "Bloqueo temporal atómico de asientos/habitaciones con Redis SETNX")
+  Component(cliPag, "PagosClient", "RestClient + Resilience4j", "Cliente REST a ms-pagos con Circuit Breaker y Timeouts")
+  Component(cliInt, "IntegracionesClient", "RestClient + Resilience4j", "Cliente REST a ms-integraciones con Circuit Breaker")
+  Component(pub, "PublicadorEventosService", "AWS SDK v2", "Envío de mensajes a SQS y eventos de dominio a EventBridge")
+  ComponentDb(repo, "ReservaRepository", "Spring Data JPA", "Persistencia de entidades Reserva en Aurora PostgreSQL")
+}
+
+Container(apigw, "Amazon API Gateway", "Managed", "Gateway de entrada")
+ContainerDb(cache, "ElastiCache Redis", "Cluster", "Locks de stock")
+Container(msPag, "ms-pagos", "Spring Boot", "Cobros")
+Container(msInt, "ms-integraciones", "Spring Boot", "Integraciones")
+ContainerQueue(sqs, "Amazon SQS", "Queue", "Cola de emisión")
+ContainerDb(db, "Aurora PostgreSQL", "Relational DB", "BD propia")
+
+Rel(apigw, ctrl, "Enruta POST /api/reservas/confirmar", "HTTPS REST")
+Rel(ctrl, srv, "Invoca caso de uso")
+Rel(srv, bloqueo, "1. Solicita bloqueo atómico")
+Rel(srv, cliInt, "2. Valida disponibilidad viva")
+Rel(srv, cliPag, "3. Solicita cobro")
+Rel(srv, repo, "4. Guarda estado PAGADA")
+Rel(srv, pub, "5. Publica eventos")
+
+Rel(bloqueo, cache, "SETNX cupo_vuelo_123 15min", "RESP")
+Rel(cliInt, msInt, "GET /api/integraciones/validar", "REST (CB)")
+Rel(cliPag, msPag, "POST /api/pagos/cobrar", "REST (CB)")
+Rel(repo, db, "INSERT/UPDATE reservas", "JDBC TLS")
+Rel(pub, sqs, "SendMessage reserva.pagada", "AWS SDK")
+
+SHOW_LEGEND()
+@enduml

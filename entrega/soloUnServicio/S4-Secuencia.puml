@@ -1,0 +1,86 @@
+@startuml S4-Secuencia
+autonumber
+skinparam defaultTextAlignment center
+skinparam roundCorner 8
+skinparam BoxPadding 10
+skinparam ParticipantPadding 10
+
+title ms-reservas — Diagrama de Secuencia: Saga de Confirmación de Reserva y Pago
+
+actor "Viajero" as user
+box "ms-reservas (ECS Fargate)" #E8F5E9
+  participant "ReservaController" as ctrl
+  participant "ReservaService" as srv
+  participant "BloqueoService" as bloqueo
+  participant "IntegracionesClient\n(Circuit Breaker)" as cliInt
+  participant "PagosClient\n(Circuit Breaker)" as cliPag
+  participant "ReservaRepository" as repo
+  participant "PublicadorEventos" as pub
+end box
+
+database "ElastiCache\n(Redis)" as redis #FCE4EC
+participant "ms-integraciones" as msInt #E0F2F1
+participant "ms-pagos" as msPag #FFF3E0
+database "Aurora Serverless\n(PostgreSQL)" as db #E1F5FE
+queue "Amazon SQS\n(Cola Emisión)" as sqs #EDE7F6
+
+user -> ctrl: POST /api/reservas/confirmar\n{reservaId, items, tokenPago}
+activate ctrl
+
+ctrl -> srv: confirmarReserva(request)
+activate srv
+
+== 1. Invariante de Inventario: Bloqueo Atómico ==
+srv -> bloqueo: bloquearCupos(items)
+activate bloqueo
+bloqueo -> redis: SETNX cupo_vuelo_123 (TTL 15 min)
+redis --> bloqueo: OK (Cupo reservado en exclusividad)
+bloqueo --> srv: Bloqueo exitoso
+deactivate bloqueo
+
+== 2. Re-validación con Proveedor (Circuit Breaker) ==
+srv -> cliInt: verificarTarifaViva(itinerario)
+activate cliInt
+cliInt -> msInt: GET /api/integraciones/validar-tarifa
+msInt --> cliInt: Tarifa y cupo válidos
+cliInt --> srv: Validación OK
+deactivate cliInt
+
+== 3. Cobro Atómico de la Reserva ==
+srv -> cliPag: solicitarCobro(monto, tokenPago, idempotencyKey)
+activate cliPag
+cliPag -> msPag: POST /api/pagos/cobrar
+msPag --> cliPag: 200 OK {pagoId, estado: "APROBADO"}
+cliPag --> srv: Pago Confirmado
+deactivate cliPag
+
+== 4. Persistencia Transaccional Local ==
+srv -> repo: save(reserva.setEstado(PAGADA))
+activate repo
+repo -> db: UPDATE reservas SET estado='PAGADA'
+db --> repo: OK
+repo --> srv: Reserva Persistida
+deactivate repo
+
+== 5. Desacople Asíncrono de Emisión (EDA) ==
+srv -> pub: publicarReservaPagada(reservaId, detalles)
+activate pub
+pub -> sqs: SendMessage {evento: "reserva.pagada", reservaId}
+sqs --> pub: MessageId (Persistido)
+pub --> srv: Evento encolado
+deactivate pub
+
+srv --> ctrl: ReservaDTO (Estado: PAGADA, VoucherEnProceso: true)
+deactivate srv
+
+ctrl --> user: 200 OK {reservaId, estado: "PAGADA", mensaje: "Reserva confirmada. Su voucher llegará en breve"}
+deactivate ctrl
+
+note over user, sqs
+  <b>Manejo de Fallas y Compensación (Saga):</b>
+  • Si el cobro falla en la pasarela: se libera el lock en Redis (DEL) y la reserva pasa a CANCELADA.
+  • Si el Circuit Breaker de Pagos abre: se notifica al usuario sin retener el inventario.
+  • La emisión en aerolíneas/hoteles ocurre en segundo plano vía SQS, evitando esperas al usuario.
+end note
+
+@enduml

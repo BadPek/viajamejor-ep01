@@ -1,0 +1,44 @@
+@startuml C4-4-Dinamico
+!include <C4/C4_Dynamic>
+
+title ViajaMejor — C4 Dinámico: Flujo de Datos Crítico "Búsqueda, Reserva, Pago y Emisión"
+
+LAYOUT_WITH_LEGEND()
+
+Person(viajero, "Viajero / Cliente", "Usuario en la aplicación móvil")
+Container(app, "App Móvil ViajaMejor", "Flutter", "Interfaz de búsqueda y billetera")
+Container(apigw, "API Gateway", "Amazon API Gateway", "JWT, CORS y rate limiting")
+Container(msBus, "ms-busqueda", "Spring Boot", "Buscador y agregador")
+ContainerDb(cache, "Caché Redis", "ElastiCache Redis", "Caché de tarifas y locks")
+Container(msRes, "ms-reservas", "Spring Boot", "Orquestador de reservas")
+Container(msPag, "ms-pagos", "Spring Boot", "Gestión de cobros")
+System_Ext(pasarela, "Pasarela de Pagos", "Webpay / Stripe")
+ContainerQueue(sqs, "Cola de Emisión", "Amazon SQS + DLQ", "Mensaje reserva.pagada")
+Container(msInt, "ms-integraciones", "Spring Boot", "Adaptador GDS/Proveedores")
+System_Ext(gds, "GDS / Aerolíneas / Hoteles", "Amadeus / Sabre APIs")
+Container(bus, "Bus EventBridge", "Amazon EventBridge", "Eventos de dominio")
+Container(lambdaDoc, "Generador de Vouchers", "AWS Lambda", "Generación serverless PDF")
+Container(s3, "Almacén S3", "Amazon S3", "Vouchers e itinerarios")
+Container(msFid, "ms-fidelizacion", "Spring Boot", "Acumulación de puntos")
+Container(msNot, "ms-notificaciones", "Spring Boot", "Despacho multicanal")
+System_Ext(mail, "Servidor de Correo", "Amazon SES")
+
+RelIndex(1, viajero, app, "1. Busca vuelos/hoteles y selecciona paquete", "App móvil")
+RelIndex(2, app, apigw, "2. POST /api/reservas/confirmar (JWT)", "HTTPS REST")
+RelIndex(3, apigw, msRes, "3. Valida JWT y enruta con rate limiting", "REST")
+RelIndex(4, msRes, cache, "4. Bloqueo atómico de cupos (SETNX + TTL 15 min)", "RESP")
+RelIndex(5, msRes, msPag, "5. Solicita cobro síncrono (Circuit Breaker)", "REST")
+RelIndex(6, msPag, pasarela, "6. Autoriza tarjeta tokenizada (PCI DSS)", "API REST")
+RelIndex(7, msPag, msRes, "7. Confirma cobro exitoso", "REST")
+RelIndex(8, msRes, sqs, "8. Publica reserva.pagada persistida (+ DLQ)", "AWS SDK")
+RelIndex(9, sqs, msInt, "9. Entrega mensaje para emisión en proveedor", "AWS SDK")
+RelIndex(10, msInt, gds, "10. Emite ticket oficial / PNR con proveedor", "HTTPS / SOAP")
+RelIndex(11, msInt, bus, "11. Publica evento reserva.confirmada", "AWS SDK")
+RelIndex(12, bus, lambdaDoc, "12. Dispara generación de itinerario y voucher", "EventBridge Rule")
+RelIndex(13, lambdaDoc, s3, "13. Almacena PDF de voucher y QR de check-in", "AWS SDK")
+RelIndex(14, bus, msFid, "14a. Fan-out: Acumula puntos de viajero", "EventBridge")
+RelIndex(15, bus, msNot, "14b. Fan-out: Prepara notificación con voucher", "EventBridge")
+RelIndex(16, msNot, mail, "15. Despacha correo con itinerario al viajero", "SMTP")
+
+SHOW_LEGEND()
+@enduml

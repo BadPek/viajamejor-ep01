@@ -1,0 +1,8 @@
+services:
+  busqueda-svc:
+    build: .
+    image: duoc/jv0101-caso06-busqueda:1.0.0
+    container_name: caso06-busqueda-svc
+    ports:
+      - "${PORT:-8080}:8080"
+    restart: unless-stopped

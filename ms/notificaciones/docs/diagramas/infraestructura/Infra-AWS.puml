@@ -1,0 +1,65 @@
+@startuml Infra-AWS
+' =====================================================================
+' ms-notificaciones — Infraestructura AWS (solo este microservicio)
+'   Rojo  = controles de seguridad (IE7)
+'   Azul  = puntos de monitoreo (IE8)
+' =====================================================================
+!include <awslib/all>
+!include <awslib/Groups/VPC.puml>
+!include <awslib/Groups/PrivateSubnet.puml>
+!include <awslib/Groups/SecurityGroup.puml>
+
+title ms-notificaciones — Infraestructura AWS (caso caso06 · ViajaMejor)
+
+skinparam defaultTextAlignment center
+skinparam roundCorner 8
+skinparam ArrowColor #37474F
+skinparam nodesep 30
+skinparam ranksep 40
+
+APIGateway(apigw, "API Gateway", "ruta /api/notificaciones\nJWT + throttling")
+Cognito(cognito, "Cognito", "JWT por rol")
+
+VPCGroup(vpc, "VPC ViajaMejor")
+package "Clúster ECS · servicio ms-notificaciones (auto scaling 2→8 tareas)" as ecs {
+  Fargate(taskA, "Tarea 1 · us-east-1a", "notificaciones-svc")
+  Fargate(taskB, "Tarea 2 · us-east-1b", "notificaciones-svc")
+}
+ElasticLoadBalancing(alb, "ALB · target group ms-notificaciones", "health check /actuator/health")
+Aurora(aurora, "Aurora · registro de envíos", "trazabilidad\nTLS + cifrado KMS")
+SimpleQueueService(sqs, "SQS + DLQ", "cola de notificaciones")
+SimpleNotificationService(sns, "SNS → SES/FCM", "entrega correo y push")
+CloudWatch(cw, "CloudWatch + X-Ray", "métricas, alarmas y trazas\ndel target group")
+KeyManagementService(kms, "KMS", "cifrado at-rest")
+SecretsManager(secrets, "Secrets Manager", "credencial de la BD\n(rotación automática)")
+IdentityAccessManagementPermissions(iam, "IAM task role", "permisos mínimos por tarea")
+CloudTrail(trail, "CloudTrail", "auditoría de administración")
+
+SecurityGroupGroup(sgApp, "SG ms-notificaciones")
+
+apigw --> alb
+alb --> taskA
+alb --> taskB
+sqs --> taskA : entrega notificaciones
+sqs --> taskB : entrega notificaciones
+taskA --> sns : despacha envío
+taskB --> sns : despacha envío
+taskA --> aurora : registro de envíos
+taskB --> aurora : registro de envíos
+taskA .[#1565C0].> cw : logs, métricas y trazas
+cw .[#1565C0].> ecs : alarma CPU/latencia → auto scaling
+apigw .[#B71C1C].> cognito : autenticación (JWT)
+alb .[#B71C1C].> sgApp : SG: solo 443 desde el ALB
+aurora .[#B71C1C].> kms : cifrado at-rest
+taskA .[#B71C1C].> secrets : credenciales sin hardcodear
+taskA .[#B71C1C].> iam : permisos mínimos
+
+legend right
+  |= Elemento |= Decisión (requisito) |
+  | Fargate 2→8 | RNF de escalabilidad: escala solo este servicio en el pico |
+  | BD propia | Aislamiento de datos por dominio (IE9/IE10) |
+  |<#B71C1C>|  Controles de seguridad (IE7) |
+  |<#1565C0]|  Puntos de monitoreo (IE8) |
+endlegend
+
+@enduml

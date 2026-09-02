@@ -1,0 +1,95 @@
+@startuml C4-2-Contenedores
+!include <C4/C4_Container>
+
+title ViajaMejor — C4 Nivel 2: Diagrama de Contenedores del Sistema
+
+LAYOUT_WITH_LEGEND()
+
+Person(viajero, "Viajero / Cliente", "Busca opciones, reserva, paga y revisa sus viajes")
+Person(operador, "Operador Turístico", "Administra inventario y verifica vouchers")
+Person(admin, "Administrador", "Auditoría, reglas de negocio y métricas")
+
+System_Boundary(vm, "ViajaMejor (AWS Cloud Native)") {
+
+  Container(spa, "Portal Web ViajaMejor", "React SPA · CloudFront + S3", "Búsqueda interactiva, checkout web, panel de operadores turísticos y reportería administrativa")
+  Container(app, "App Móvil ViajaMejor", "Flutter (iOS / Android)", "Búsqueda móvil, notificaciones push, gestión de itinerarios offline y billetera de puntos")
+
+  Container(apigw, "API Gateway", "Amazon API Gateway (REST)", "Punto de entrada único: validación de tokens JWT, throttling anti-bot, CORS y enrutamiento inteligente")
+  Container(cognito, "Servicio de Identidad", "Amazon Cognito", "Registro, login, gestión de usuarios (User Pools) y emisión de JWT con claims por rol")
+
+  Container(msUsu, "ms-usuarios", "Spring Boot 3 · Java 21 · ECS Fargate", "Gestión de perfiles de viajeros, preferencias de viaje, operadores y datos personales protegidos")
+  ContainerDb(dbUsu, "BD Usuarios", "Aurora Serverless v2 (PostgreSQL)", "Perfiles de usuarios, credenciales hasheadas, roles y preferencias")
+
+  Container(msBus, "ms-busqueda", "Spring Boot 3 · Java 21 · ECS Fargate", "Agregación y filtrado de vuelos, hoteles y autos en tiempo real; optimizado para alta lectura")
+  ContainerDb(dbBus, "BD Búsqueda", "Aurora Serverless v2 (PostgreSQL)", "Catálogo base, ciudades, rutas, aeropuertos y reglas de indexación")
+  ContainerDb(cache, "Caché de Búsqueda y Locks", "Amazon ElastiCache (Redis)", "Caché de tarifas/disponibilidad frecuente y bloqueo temporal de cupos (SETNX con TTL)")
+
+  Container(msRes, "ms-reservas", "Spring Boot 3 · Java 21 · ECS Fargate", "Núcleo transaccional: orquesta el ciclo de vida de la reserva y coordina la saga de compra")
+  ContainerDb(dbRes, "BD Reservas", "Aurora Serverless v2 (PostgreSQL)", "Órdenes de reserva, ítems de viaje, estados (PENDIENTE, CONFIRMADA, CANCELADA)")
+
+  Container(msPag, "ms-pagos", "Spring Boot 3 · Java 21 · ECS Fargate", "Procesamiento seguro de cobros, tokenización de tarjetas, reembolsos y conciliación financiera (PCI)")
+  ContainerDb(dbPag, "BD Pagos", "Aurora Serverless v2 (PostgreSQL)", "Transacciones de pago, tokens de pasarela, comprobantes e historial de reembolsos")
+
+  Container(msInt, "ms-integraciones", "Spring Boot 3 · Java 21 · ECS Fargate", "Adaptadores a proveedores externos (GDS, aerolíneas, cadenas hoteleras y rent-a-car)")
+  ContainerDb(dbInt, "BD Integraciones", "Aurora Serverless v2 (PostgreSQL)", "Mapeo de códigos externos de reserva (PNR), contratos y logs de comunicación con proveedores")
+
+  Container(msFid, "ms-fidelizacion", "Spring Boot 3 · Java 21 · ECS Fargate", "Administración de puntos de viajero frecuente, categorías de socio (Silver, Gold, Platinum) y canjes")
+  ContainerDb(dbFid, "BD Fidelización", "Aurora Serverless v2 (PostgreSQL)", "Saldos de puntos, historial de abonos/canjes, categorías y reglas de recompensa")
+
+  Container(msNot, "ms-notificaciones", "Spring Boot 3 · Java 21 · ECS Fargate", "Servicio stateless para despacho de confirmaciones, vouchers e itinerarios por correo, push y SMS")
+
+  ContainerQueue(sqsRes, "Cola de Emisión y Saga", "Amazon SQS (+ DLQ)", "Desacopla la confirmación del pago de la emisión de pasajes/vouchers en proveedores externos")
+  Container(bus, "Bus de Eventos de Dominio", "Amazon EventBridge", "Canal de eventos: reserva.creada, pago.confirmado, reserva.confirmada, puntos.acumulados")
+  Container(lambdaDoc, "Generador de Itinerarios y Vouchers", "AWS Lambda", "Generación serverless bajo demanda de PDFs de itinerarios y vouchers de viaje con QR")
+  Container(s3, "Almacenamiento de Documentos", "Amazon S3", "Vouchers de viaje en PDF, comprobantes tributarios, pólizas y assets web")
+}
+
+System_Ext(gds, "Proveedores Externos (GDS / Hoteles / Aerolíneas)", "Amadeus / Sabre / Expedia APIs")
+System_Ext(pasarela, "Pasarela de Pagos", "Transbank Webpay / Stripe")
+System_Ext(notif_ext, "Servicio de Correo y Push", "Amazon SES / Firebase FCM")
+
+Rel(viajero, app, "Interactúa", "App Móvil")
+Rel(viajero, spa, "Interactúa", "Navegador Web")
+Rel(operador, spa, "Gestiona inventario", "Navegador Web")
+Rel(admin, spa, "Monitorea plataforma", "Navegador Web")
+
+Rel(app, apigw, "Consume API REST", "HTTPS / JSON + JWT")
+Rel(spa, apigw, "Consume API REST", "HTTPS / JSON + JWT")
+
+Rel(apigw, cognito, "Valida autenticación", "JWT / JWKS")
+Rel(apigw, msUsu, "Enruta /api/usuarios", "HTTPS REST")
+Rel(apigw, msBus, "Enruta /api/busqueda", "HTTPS REST")
+Rel(apigw, msRes, "Enruta /api/reservas", "HTTPS REST")
+Rel(apigw, msPag, "Enruta /api/pagos", "HTTPS REST")
+Rel(apigw, msInt, "Enruta /api/integraciones", "HTTPS REST")
+Rel(apigw, msFid, "Enruta /api/fidelizacion", "HTTPS REST")
+
+Rel(msUsu, dbUsu, "Lee/Escribe perfiles", "JPA / JDBC (TLS)")
+Rel(msBus, dbBus, "Consulta catálogo", "JPA / JDBC (TLS)")
+Rel(msBus, cache, "Consulta/Actualiza caché", "RESP")
+Rel(msBus, msInt, "Consulta tarifas vivas", "HTTPS REST (Circuit Breaker)")
+
+Rel(msRes, dbRes, "Persiste órdenes", "JPA / JDBC (TLS)")
+Rel(msRes, cache, "Bloquea cupo temporal (SETNX)", "RESP")
+Rel(msRes, msPag, "Solicita autorización de cobro", "HTTPS REST (Circuit Breaker)")
+Rel(msRes, sqsRes, "Publica reserva.pagada para emisión", "AWS SDK")
+
+Rel(msPag, dbPag, "Persiste transacciones", "JPA / JDBC (TLS)")
+Rel(msPag, pasarela, "Autoriza y concilia cobro", "HTTPS REST + Webhooks")
+
+Rel(sqsRes, msInt, "Consume orden para emitir en proveedor", "AWS SDK")
+Rel(msInt, dbInt, "Persiste códigos PNR", "JPA / JDBC (TLS)")
+Rel(msInt, gds, "Emite boletos/reservas externas", "HTTPS REST/SOAP (Circuit Breaker)")
+Rel(msInt, bus, "Publica reserva.confirmada", "AWS SDK")
+
+Rel(bus, lambdaDoc, "Dispara generación de voucher", "EventBridge Rule")
+Rel(lambdaDoc, s3, "Guarda PDF de voucher e itinerario", "AWS SDK")
+Rel(bus, msNot, "Consume eventos para despachar", "EventBridge Rule")
+Rel(bus, msFid, "Consume evento para acumular puntos", "EventBridge Rule")
+
+Rel(msFid, dbFid, "Actualiza saldos de puntos", "JPA / JDBC (TLS)")
+Rel(msNot, notif_ext, "Envía email / push con enlace a voucher", "SMTP / REST API")
+Rel(app, s3, "Descarga vouchers e itinerarios", "HTTPS (CloudFront)")
+
+SHOW_LEGEND()
+@enduml

@@ -1,0 +1,27 @@
+@startuml C4-1-Contexto
+!include <C4/C4_Context>
+
+title ViajaMejor — C4 Nivel 1: Diagrama de Contexto del Sistema
+
+LAYOUT_WITH_LEGEND()
+
+Person(viajero, "Viajero / Cliente", "Busca vuelos, hoteles, vehículos y paquetes; crea reservas, paga en línea y administra puntos de fidelización")
+Person(operador, "Operador Turístico / Partner", "Gestiona disponibilidad de inventario local, tarifas dinámicas y valida reservas emitidas")
+Person(admin, "Administrador de Plataforma", "Supervisa métricas de reservas, reglas de negocio de fidelización, auditoría y salud de servicios")
+
+System(viajamejor, "ViajaMejor", "Plataforma TravelTech / OTA para reservas y agregación de viajes (solución nativa en nube en AWS)")
+
+System_Ext(gds, "Proveedores Externos (GDS / APIs)", "Amadeus / Sabre / Expedia / APIs directas de aerolíneas, hoteles y rent-a-car para tarifas, disponibilidad y emisiones")
+System_Ext(pasarela, "Pasarela de Pagos", "Transbank Webpay / Stripe: procesa cobros seguros con tokenización (PCI DSS), webhooks de confirmación y reembolsos")
+System_Ext(notif_ext, "Servicio de Correo y Push", "Amazon SES / Firebase FCM: despacho de itinerarios, vouchers de viaje, recordatorios y alertas")
+
+Rel(viajero, viajamejor, "Busca servicios, gestiona reservas, paga y canjea puntos", "HTTPS / API REST + JWT")
+Rel(operador, viajamejor, "Gestiona inventario y valida itinerarios", "HTTPS / Web (CloudFront)")
+Rel(admin, viajamejor, "Monitorea plataforma y configura reglas", "HTTPS / Web (CloudFront)")
+
+Rel(viajamejor, gds, "Consulta tarifas/disponibilidad y emite pasajes/vouchers", "HTTPS REST/SOAP + Circuit Breaker")
+Rel(viajamejor, pasarela, "Autoriza cobros tokenizados y gestiona reembolsos", "HTTPS REST + Webhook firmado")
+Rel(viajamejor, notif_ext, "Despacha confirmaciones de viaje y recordatorios", "SMTP / API push")
+
+SHOW_LEGEND()
+@enduml

@@ -1,0 +1,45 @@
+@startuml C4-3-Componentes
+!include <C4/C4_Component>
+
+title ViajaMejor — C4 Nivel 3: Componentes de ms-reservas (Zoom al núcleo transaccional)
+
+LAYOUT_WITH_LEGEND()
+
+Person(viajero, "Viajero / Cliente", "Confirma y paga su paquete de viaje")
+
+Container_Boundary(msRes, "ms-reservas — Spring Boot 3 (ECS Fargate)") {
+
+  Component(ctrl, "ReservaController", "Spring MVC REST Controller", "Expone los endpoints /api/reservas: creación, modificación, cancelación y consulta de estado")
+  Component(srv, "ReservaService", "Spring Service (Java 21)", "Orquestación de negocio: máquina de estados de la reserva y coordinación de la saga")
+  Component(bloqueo, "BloqueoDisponibilidadService", "Java + Lettuce / Redisson", "Bloqueo atómico temporal de cupos en vuelo/hotel usando Redis SETNX + TTL de 15 minutos")
+  Component(cliPag, "PagosClient", "RestClient + Resilience4j", "Solicita cobro síncrono a ms-pagos con Circuit Breaker, reintentos e idempotencia")
+  Component(cliInt, "IntegracionesClient", "RestClient + Resilience4j", "Verifica disponibilidad preliminar con ms-integraciones protegido con Circuit Breaker")
+  Component(pub, "PublicadorEventosService", "AWS SDK v2 (SQS + EventBridge)", "Publica reserva.pagada en SQS y eventos de dominio en EventBridge para desacoplar la emisión")
+  ComponentDb(repo, "ReservaRepository", "Spring Data JPA", "Persistencia transaccional de reservas, pasajeros y estados en Aurora PostgreSQL")
+}
+
+Container(apigw, "API Gateway", "Amazon API Gateway", "Entrada única REST con validación JWT")
+ContainerDb(cache, "Caché de Disponibilidad", "Amazon ElastiCache (Redis)", "Bloqueos temporales atómicos")
+Container(msPag, "ms-pagos", "Spring Boot 3", "Cobros y reembolsos")
+Container(msInt, "ms-integraciones", "Spring Boot 3", "Adaptadores de proveedores")
+ContainerQueue(sqs, "Cola de Emisión", "Amazon SQS + DLQ", "Mensaje reserva.pagada")
+ContainerDb(dbRes, "BD Reservas", "Aurora Serverless v2", "Tablas reservas y pasajeros")
+
+Rel(viajero, apigw, "Confirma compra de viaje", "HTTPS / REST + JWT")
+Rel(apigw, ctrl, "POST /api/reservas/confirmar", "HTTPS REST")
+
+Rel(ctrl, srv, "Invoca caso de uso de confirmación")
+Rel(srv, bloqueo, "1. Bloquea cupos temporalmente", "SETNX + TTL 15 min")
+Rel(srv, cliInt, "2. Re-valida tarifas y disponibilidad", "REST (Circuit Breaker)")
+Rel(srv, cliPag, "3. Solicita cobro de reserva", "REST (Circuit Breaker)")
+Rel(srv, repo, "4. Actualiza estado a PAGADA", "JPA / SQL")
+Rel(srv, pub, "5. Publica evento asíncrono", "AWS SDK")
+
+Rel(bloqueo, cache, "Ejecuta operación atómica", "RESP")
+Rel(cliInt, msInt, "Llama con Circuit Breaker", "HTTPS REST")
+Rel(cliPag, msPag, "Llama con Circuit Breaker", "HTTPS REST")
+Rel(pub, sqs, "Encola reserva.pagada", "AWS SDK")
+Rel(repo, dbRes, "Persiste en base de datos", "JDBC / TLS")
+
+SHOW_LEGEND()
+@enduml

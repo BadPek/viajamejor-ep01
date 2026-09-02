@@ -1,0 +1,39 @@
+@startuml Secuencia-Notificacion
+title ms-notificaciones — Diagrama de secuencia: notificación por evento
+
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 320
+skinparam sequenceMessageAlignment center
+skinparam roundCorner 8
+autonumber "<b>0."
+
+participant "Servicios productores" as prod #D5E8D4
+participant "EventBridge" as ev #F8CECC
+participant "SQS" as sqs #F8CECC
+box "ms-notificaciones" #FFF2CC
+  participant "EventoConsumer" as cons
+  participant "NotificacionService" as svc
+  participant "PlantillaService" as tpl
+  participant "SNSClient" as sns
+  participant "Repository" as repo
+end box
+participant "SNS → SES/FCM" as canal #E1D5E7
+
+== Notificación por evento ==
+prod -> ev : publica evento de dominio
+ev -> sqs : entrega a la cola del servicio
+sqs -> cons : consume con reintentos
+cons -> svc : enviar notificación
+svc -> tpl : compone el mensaje (plantilla versionada)
+tpl --> svc : mensaje listo (mínima data sensible)
+svc -> sns : publica al topic del canal
+sns -> canal : fan-out correo + push
+svc -> repo : registra el envío (trazabilidad)
+note over sqs, canal
+  <b>Desacople total (IE10)</b>
+  Ningún productor conoce este servicio: solo publican
+  el evento. Si el canal cae, SQS reintenta; la operación
+  de negocio jamás se bloquea por una notificación.
+end note
+
+@enduml

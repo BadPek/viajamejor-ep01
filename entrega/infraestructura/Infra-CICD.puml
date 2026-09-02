@@ -1,0 +1,57 @@
+@startuml Infra-CICD
+!include <C4/C4_Deployment>
+
+title ViajaMejor — Pipeline CI/CD: Automatización, Calidad y Despliegue Blue/Green
+
+LAYOUT_WITH_LEGEND()
+
+Person(dev, "Desarrollador (Andrés)", "Push a rama main / Pull Request")
+
+Deployment_Node(vcs, "Control de Versiones", "GitHub") {
+  Deployment_Node(repo, "GitHub Repositories", "1 repositorio independiente por microservicio")
+}
+
+Deployment_Node(aws_cicd, "AWS DevOps Pipeline", "Automatización del ciclo de vida") {
+
+  Deployment_Node(pipe, "AWS CodePipeline", "Orquestador del flujo continuo")
+
+  Deployment_Node(build, "AWS CodeBuild", "Entorno de Construcción y Quality Gates") {
+    Container(mvn, "Maven Build & Test", "Java 21 · Spring Boot 3.3", "mvn clean verify\n• Pruebas Unitarias JUnit 5\n• Pruebas BDD Cucumber\n• JaCoCo 100% Cobertura LINE\n• Análisis Estático de Dependencias")
+  }
+
+  Deployment_Node(registry, "Amazon ECR", "Container Registry") {
+    Container(img, "Imagen Docker", "Inmutable", "Etiquetada con Commit SHA")
+  }
+
+  Deployment_Node(deploy, "AWS CodeDeploy", "Despliegue ECS Blue/Green") {
+    Container(bg, "Estrategia Blue/Green", "Zero Downtime", "Canary Traffic Shifting (10% a 100%)")
+  }
+}
+
+Deployment_Node(ecs_env, "Entorno de Ejecución Amazon ECS (Fargate)", "Producción Multi-AZ") {
+  Container(taskBlue, "Tarea Fargate AZUL", "Versión Actual v1", "Activa en producción")
+  Container(taskGreen, "Tarea Fargate VERDE", "Nueva Versión v2", "Desplegada para pruebas")
+  Deployment_Node(albTest, "ALB Test Listener (:8443)", "Pruebas de Humo (Smoke Tests)")
+  Deployment_Node(albProd, "ALB Prod Listener (:443)", "Tráfico real de viajeros")
+}
+
+Deployment_Node(obs, "Observabilidad y Resiliencia (IE8)", "Monitoreo Preventivo") {
+  Deployment_Node(cw, "Amazon CloudWatch", "Alarmas p95 > 3s o errores 5xx > 1%")
+  Deployment_Node(lambda, "AWS Lambda (Rollback)", "Auto-Rollback inmediato si se disparan alarmas")
+}
+
+Rel(dev, repo, "Git Push / PR Merge", "HTTPS Git")
+Rel(repo, pipe, "Webhook de disparo", "EventBridge")
+Rel(pipe, build, "Inicia etapa Build", "CodePipeline")
+Rel(build, img, "Publica imagen validada", "Docker Push")
+Rel(pipe, deploy, "Inicia etapa Deploy", "CodePipeline")
+Rel(deploy, taskGreen, "Despliega versión VERDE", "ECS API")
+Rel(taskGreen, albTest, "1. Valida Smoke Tests en :8443", "HTTP")
+Rel(albTest, albProd, "2. Si Smoke Tests OK, inicia Canary", "Traffic Shift")
+Rel(albProd, taskGreen, "3. Enruta 100% a versión VERDE", "HTTP")
+Rel(albProd, cw, "4. Monitorea métricas en tiempo real", "Metrics")
+Rel(cw, lambda, "Dispara alarma si hay degradación", "CloudWatch Alarm")
+Rel(lambda, taskBlue, "Reversa inmediata a versión AZUL", "Auto-Rollback")
+
+SHOW_LEGEND()
+@enduml

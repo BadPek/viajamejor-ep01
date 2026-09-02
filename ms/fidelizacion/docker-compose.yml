@@ -1,0 +1,8 @@
+services:
+  fidelizacion-svc:
+    build: .
+    image: duoc/jv0101-caso06-fidelizacion:1.0.0
+    container_name: caso06-fidelizacion-svc
+    ports:
+      - "${PORT:-8080}:8080"
+    restart: unless-stopped

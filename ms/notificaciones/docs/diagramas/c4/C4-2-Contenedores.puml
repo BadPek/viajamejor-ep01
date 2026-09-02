@@ -1,0 +1,25 @@
+@startuml C4-2-Contenedores
+!include <C4/C4_Container>
+
+title ms-notificaciones — C4 Nivel 2: Contenedores
+
+LAYOUT_WITH_LEGEND()
+
+System_Boundary(sb, "ms-notificaciones (dominio de Notificaciones)") {
+  Container(api, "API de Notificaciones", "Spring Boot 3 · Java 21 · ECS Fargate", "Expone /api/notificaciones y persiste el dominio con su propia base de datos")
+  ContainerDb(db, "Registro de envíos", "Aurora Serverless (PostgreSQL)", "Trazabilidad de notificaciones (sin datos de negocio)")
+  ContainerQueue(q, "Cola de notificaciones", "Amazon SQS + DLQ", "Eventos pendientes de envío")
+}
+
+Container(apigw, "API Gateway", "Amazon API Gateway", "JWT + throttling")
+Container(ev, "Amazon EventBridge", "Servicio AWS", "Eventos de dominio de todos los servicios")
+Container(sns, "Amazon SNS + SES/FCM", "Servicio AWS", "Entrega física por correo y push")
+
+Rel(apigw, api, "Enruta /api/notificaciones", "REST")
+Rel(ev, q, "Entrega el evento", "AWS SDK")
+Rel(q, api, "Consume para enviar", "AWS SDK")
+Rel(api, sns, "Envía el mensaje", "AWS SDK")
+Rel(api, db, "Registra el envío", "JPA / SQL (TLS)")
+
+SHOW_LEGEND()
+@enduml

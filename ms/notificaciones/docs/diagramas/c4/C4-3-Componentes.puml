@@ -1,0 +1,27 @@
+@startuml C4-3-Componentes
+!include <C4/C4_Component>
+
+title ms-notificaciones — C4 Nivel 3: Componentes internos
+
+LAYOUT_WITH_LEGEND()
+
+Container_Boundary(ms, "ms-notificaciones — Spring Boot 3 (ECS Fargate)") {
+
+  Component(rest, "NotificacionController", "Spring MVC REST", "Expone /api/notificaciones: crear, consultar, actualizar y eliminar")
+  Component(svc, "NotificacionService", "Java 21", "Lógica de negocio del dominio: validaciones, reglas y transiciones")
+  Component(cons, "EventoConsumer", "AWS SDK (SQS)", "Consume los eventos de dominio pendientes de envío")
+  Component(tpl, "PlantillaService", "Java 21", "Compone el mensaje según el tipo de evento (plantillas versionadas)")
+  ComponentDb(repo, "NotificacionRepository", "Spring Data JPA", "Registro de envíos para trazabilidad")
+  Component(sns, "SNSClient", "AWS SDK (SNS)", "Despacha hacia correo y push")
+}
+
+Container(apigw, "API Gateway", "Amazon API Gateway", "JWT + throttling")
+
+Rel(apigw, rest, "Enruta /api/notificaciones", "REST")
+Rel(cons, svc, "Entrega el evento")
+Rel(svc, tpl, "Compone el mensaje")
+Rel(svc, sns, "Despacha el envío", "AWS SDK")
+Rel(svc, repo, "Registra el envío", "JPA / SQL")
+
+SHOW_LEGEND()
+@enduml
