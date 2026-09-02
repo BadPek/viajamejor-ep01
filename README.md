@@ -1,7 +1,7 @@
 # ViajaMejor — Plataforma Cloud Native de Reservas de Viajes (OTA)
 
 > **Evaluación Parcial N°1 (EP01) — Asignatura: Java: Diseño y Construcción de Soluciones Nativas en Nube (JVY0101)**  
-> **Duoc UC — Escuela de Informática y Telecomunicaciones**  
+> **Duoc UC — Carrera Ingeniería en Informática**  
 > **Caso 06: ViajaMejor**
 
 ---
@@ -86,7 +86,7 @@ docker compose up -d --build
 ---
 
 ## 6. Identificación del Proyecto
-- **Estudiante**: Andrés
+- **Estudiante**: Andrés Osorio Escobar
 - **Asignatura**: Java: Diseño y Construcción de Soluciones Nativas en Nube (JVY0101)
 - **Docente**: Mauricio Andrés Velásquez Silva
-- **Institución**: Duoc UC
+- **Institución**: Duoc UC — Carrera Ingeniería en Informática
