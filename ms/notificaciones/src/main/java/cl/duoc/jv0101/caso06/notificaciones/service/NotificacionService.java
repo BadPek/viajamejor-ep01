@@ -32,6 +32,7 @@ public class NotificacionService {
             existente.setNombre(datos.getNombre());
             existente.setTipo(datos.getTipo());
             existente.setCanal(datos.getCanal());
+            existente.replaceEnvios(datos.getEnvios());
             return repository.save(existente);
         });
     }
