@@ -32,6 +32,7 @@ public class PagoService {
             existente.setNombre(datos.getNombre());
             existente.setReserva(datos.getReserva());
             existente.setMonto(datos.getMonto());
+            existente.replaceTransacciones(datos.getTransacciones());
             return repository.save(existente);
         });
     }

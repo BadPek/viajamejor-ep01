@@ -1,0 +1,1129 @@
+{
+  "info": {
+    "name": "ViajaMejor EP02 — JVY0101",
+    "description": "Colección oficial de pruebas de los 7 microservicios Spring Boot de ViajaMejor (EP02). Cubre casos felices (200, 201, 204), relaciones JPA hijo (@OneToMany) y manejo de errores (400, 404). Puertos: 8081 a 8087.",
+    "_postman_id": "viajamejor-ep02-jvy0101",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "usuariosUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "busquedaUrl",
+      "value": "http://localhost:8082"
+    },
+    {
+      "key": "reservasUrl",
+      "value": "http://localhost:8083"
+    },
+    {
+      "key": "pagosUrl",
+      "value": "http://localhost:8084"
+    },
+    {
+      "key": "integracionesUrl",
+      "value": "http://localhost:8085"
+    },
+    {
+      "key": "fidelizacionUrl",
+      "value": "http://localhost:8086"
+    },
+    {
+      "key": "notificacionesUrl",
+      "value": "http://localhost:8087"
+    },
+    {
+      "key": "idDemo",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Usuarios (/api/usuarios)",
+      "item": [
+        {
+          "name": "1. Listar todos (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{usuariosUrl}}/api/usuarios",
+              "host": [
+                "{{usuariosUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2. Crear con relación hijo (201 Created)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Andrés Osorio\",\n  \"email\": \"andres.osorio@duocuc.cl\",\n  \"nivel\": \"GOLD\",\n  \"direcciones\": [\n    {\n      \"calle\": \"Av. Providencia 1234\",\n      \"ciudad\": \"Santiago\",\n      \"codigoPostal\": \"7500000\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{usuariosUrl}}/api/usuarios",
+              "host": [
+                "{{usuariosUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3. Obtener por ID (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{usuariosUrl}}/api/usuarios/1",
+              "host": [
+                "{{usuariosUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4. Actualizar con nuevos hijos (200 OK)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Andrés Osorio Escobar\",\n  \"email\": \"andres.osorio@viajamejor.cl\",\n  \"nivel\": \"PLATINUM\",\n  \"direcciones\": [\n    {\n      \"calle\": \"Av. Apoquindo 5000\",\n      \"ciudad\": \"Las Condes\",\n      \"codigoPostal\": \"7550000\"\n    },\n    {\n      \"calle\": \"Moneda 800\",\n      \"ciudad\": \"Santiago\",\n      \"codigoPostal\": \"8320000\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{usuariosUrl}}/api/usuarios/1",
+              "host": [
+                "{{usuariosUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5. Error Validación - Nombre vacío (400 Bad Request)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"\",\n  \"email\": \"invalido@email.com\",\n  \"nivel\": \"BRONZE\"\n}"
+            },
+            "url": {
+              "raw": "{{usuariosUrl}}/api/usuarios",
+              "host": [
+                "{{usuariosUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios"
+              ]
+            }
+          }
+        },
+        {
+          "name": "6. Error - Recurso inexistente (404 Not Found)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{usuariosUrl}}/api/usuarios/9999",
+              "host": [
+                "{{usuariosUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "9999"
+              ]
+            }
+          }
+        },
+        {
+          "name": "7. Eliminar por ID (204 No Content)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{usuariosUrl}}/api/usuarios/1",
+              "host": [
+                "{{usuariosUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "1"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Búsqueda (/api/busqueda)",
+      "item": [
+        {
+          "name": "1. Listar todos (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{busquedaUrl}}/api/busqueda",
+              "host": [
+                "{{busquedaUrl}}"
+              ],
+              "path": [
+                "api",
+                "busqueda"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2. Crear con relación hijo (201 Created)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Vuelo Santiago - Cancún\",\n  \"proveedor\": \"LATAM Airlines\",\n  \"precio\": 450000.0,\n  \"filtros\": [\n    {\n      \"categoria\": \"CLASE\",\n      \"valor\": \"PREMIUM_ECONOMY\",\n      \"activo\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{busquedaUrl}}/api/busqueda",
+              "host": [
+                "{{busquedaUrl}}"
+              ],
+              "path": [
+                "api",
+                "busqueda"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3. Obtener por ID (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{busquedaUrl}}/api/busqueda/1",
+              "host": [
+                "{{busquedaUrl}}"
+              ],
+              "path": [
+                "api",
+                "busqueda",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4. Actualizar con nuevos hijos (200 OK)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Vuelo Santiago - Cancún (Oferta Flash)\",\n  \"proveedor\": \"LATAM Airlines\",\n  \"precio\": 399990.0,\n  \"filtros\": [\n    {\n      \"categoria\": \"CLASE\",\n      \"valor\": \"BUSINESS\",\n      \"activo\": true\n    },\n    {\n      \"categoria\": \"EQUIPAJE\",\n      \"valor\": \"2_MALETAS\",\n      \"activo\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{busquedaUrl}}/api/busqueda/1",
+              "host": [
+                "{{busquedaUrl}}"
+              ],
+              "path": [
+                "api",
+                "busqueda",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5. Error Validación - Nombre vacío (400 Bad Request)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"\",\n  \"proveedor\": \"SKY\",\n  \"precio\": 120000.0\n}"
+            },
+            "url": {
+              "raw": "{{busquedaUrl}}/api/busqueda",
+              "host": [
+                "{{busquedaUrl}}"
+              ],
+              "path": [
+                "api",
+                "busqueda"
+              ]
+            }
+          }
+        },
+        {
+          "name": "6. Error - Recurso inexistente (404 Not Found)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{busquedaUrl}}/api/busqueda/9999",
+              "host": [
+                "{{busquedaUrl}}"
+              ],
+              "path": [
+                "api",
+                "busqueda",
+                "9999"
+              ]
+            }
+          }
+        },
+        {
+          "name": "7. Eliminar por ID (204 No Content)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{busquedaUrl}}/api/busqueda/1",
+              "host": [
+                "{{busquedaUrl}}"
+              ],
+              "path": [
+                "api",
+                "busqueda",
+                "1"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Reservas (/api/reservas)",
+      "item": [
+        {
+          "name": "1. Listar todos (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{reservasUrl}}/api/reservas",
+              "host": [
+                "{{reservasUrl}}"
+              ],
+              "path": [
+                "api",
+                "reservas"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2. Crear con relación hijo (201 Created)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Reserva Vacaciones Verano 2026\",\n  \"proveedor\": \"Amadeus GDS\",\n  \"fecha\": \"2026-02-15\",\n  \"items\": [\n    {\n      \"descripcion\": \"Boleto Aéreo SCL-CUN\",\n      \"cantidad\": 2,\n      \"precioUnitario\": 450000.0\n    },\n    {\n      \"descripcion\": \"Hotel Grand Oasis Cancún All Inclusive\",\n      \"cantidad\": 7,\n      \"precioUnitario\": 180000.0\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{reservasUrl}}/api/reservas",
+              "host": [
+                "{{reservasUrl}}"
+              ],
+              "path": [
+                "api",
+                "reservas"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3. Obtener por ID (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{reservasUrl}}/api/reservas/1",
+              "host": [
+                "{{reservasUrl}}"
+              ],
+              "path": [
+                "api",
+                "reservas",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4. Actualizar con nuevos hijos (200 OK)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Reserva Vacaciones Verano 2026 (Confirmada)\",\n  \"proveedor\": \"Amadeus GDS\",\n  \"fecha\": \"2026-02-15\",\n  \"items\": [\n    {\n      \"descripcion\": \"Boleto Aéreo SCL-CUN\",\n      \"cantidad\": 2,\n      \"precioUnitario\": 450000.0\n    },\n    {\n      \"descripcion\": \"Hotel Grand Oasis Cancún All Inclusive\",\n      \"cantidad\": 7,\n      \"precioUnitario\": 180000.0\n    },\n    {\n      \"descripcion\": \"Seguro Asistencia en Viaje Universal\",\n      \"cantidad\": 2,\n      \"precioUnitario\": 35000.0\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{reservasUrl}}/api/reservas/1",
+              "host": [
+                "{{reservasUrl}}"
+              ],
+              "path": [
+                "api",
+                "reservas",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5. Error Validación - Nombre vacío (400 Bad Request)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"\",\n  \"proveedor\": \"Sabre\",\n  \"fecha\": \"2026-03-01\"\n}"
+            },
+            "url": {
+              "raw": "{{reservasUrl}}/api/reservas",
+              "host": [
+                "{{reservasUrl}}"
+              ],
+              "path": [
+                "api",
+                "reservas"
+              ]
+            }
+          }
+        },
+        {
+          "name": "6. Error - Recurso inexistente (404 Not Found)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{reservasUrl}}/api/reservas/9999",
+              "host": [
+                "{{reservasUrl}}"
+              ],
+              "path": [
+                "api",
+                "reservas",
+                "9999"
+              ]
+            }
+          }
+        },
+        {
+          "name": "7. Eliminar por ID (204 No Content)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{reservasUrl}}/api/reservas/1",
+              "host": [
+                "{{reservasUrl}}"
+              ],
+              "path": [
+                "api",
+                "reservas",
+                "1"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Pagos (/api/pagos)",
+      "item": [
+        {
+          "name": "1. Listar todos (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{pagosUrl}}/api/pagos",
+              "host": [
+                "{{pagosUrl}}"
+              ],
+              "path": [
+                "api",
+                "pagos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2. Crear con relación hijo (201 Created)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Cobro Reserva #10045\",\n  \"reserva\": \"RES-2026-10045\",\n  \"monto\": 2160000.0,\n  \"transacciones\": [\n    {\n      \"codigoAutorizacion\": \"AUTH-998822\",\n      \"medioPago\": \"TARJETA_CREDITO_WEBPAY\",\n      \"montoTransaccion\": 2160000.0\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{pagosUrl}}/api/pagos",
+              "host": [
+                "{{pagosUrl}}"
+              ],
+              "path": [
+                "api",
+                "pagos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3. Obtener por ID (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{pagosUrl}}/api/pagos/1",
+              "host": [
+                "{{pagosUrl}}"
+              ],
+              "path": [
+                "api",
+                "pagos",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4. Actualizar con nuevos hijos (200 OK)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Cobro Reserva #10045 (Conciliado)\",\n  \"reserva\": \"RES-2026-10045\",\n  \"monto\": 2160000.0,\n  \"transacciones\": [\n    {\n      \"codigoAutorizacion\": \"AUTH-998822\",\n      \"medioPago\": \"TARJETA_CREDITO_WEBPAY\",\n      \"montoTransaccion\": 2160000.0\n    },\n    {\n      \"codigoAutorizacion\": \"CONC-774411\",\n      \"medioPago\": \"CONCILIACION_BANCARIA\",\n      \"montoTransaccion\": 2160000.0\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{pagosUrl}}/api/pagos/1",
+              "host": [
+                "{{pagosUrl}}"
+              ],
+              "path": [
+                "api",
+                "pagos",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5. Error Validación - Nombre vacío (400 Bad Request)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"\",\n  \"reserva\": \"RES-000\",\n  \"monto\": 1000.0\n}"
+            },
+            "url": {
+              "raw": "{{pagosUrl}}/api/pagos",
+              "host": [
+                "{{pagosUrl}}"
+              ],
+              "path": [
+                "api",
+                "pagos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "6. Error - Recurso inexistente (404 Not Found)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{pagosUrl}}/api/pagos/9999",
+              "host": [
+                "{{pagosUrl}}"
+              ],
+              "path": [
+                "api",
+                "pagos",
+                "9999"
+              ]
+            }
+          }
+        },
+        {
+          "name": "7. Eliminar por ID (204 No Content)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{pagosUrl}}/api/pagos/1",
+              "host": [
+                "{{pagosUrl}}"
+              ],
+              "path": [
+                "api",
+                "pagos",
+                "1"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Integraciones (/api/integraciones)",
+      "item": [
+        {
+          "name": "1. Listar todos (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{integracionesUrl}}/api/integraciones",
+              "host": [
+                "{{integracionesUrl}}"
+              ],
+              "path": [
+                "api",
+                "integraciones"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2. Crear con relación hijo (201 Created)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Conector Sabre Flight Booking API\",\n  \"proveedor\": \"Sabre GDS\",\n  \"estado\": \"ACTIVO\",\n  \"registros\": [\n    {\n      \"endpoint\": \"/v1/flights/availability\",\n      \"codigoHttp\": 200,\n      \"tiempoRespuestaMs\": 145\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{integracionesUrl}}/api/integraciones",
+              "host": [
+                "{{integracionesUrl}}"
+              ],
+              "path": [
+                "api",
+                "integraciones"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3. Obtener por ID (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{integracionesUrl}}/api/integraciones/1",
+              "host": [
+                "{{integracionesUrl}}"
+              ],
+              "path": [
+                "api",
+                "integraciones",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4. Actualizar con nuevos hijos (200 OK)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Conector Sabre Flight Booking API (Monitoreado)\",\n  \"proveedor\": \"Sabre GDS\",\n  \"estado\": \"ACTIVO\",\n  \"registros\": [\n    {\n      \"endpoint\": \"/v1/flights/availability\",\n      \"codigoHttp\": 200,\n      \"tiempoRespuestaMs\": 145\n    },\n    {\n      \"endpoint\": \"/v1/flights/booking\",\n      \"codigoHttp\": 201,\n      \"tiempoRespuestaMs\": 320\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{integracionesUrl}}/api/integraciones/1",
+              "host": [
+                "{{integracionesUrl}}"
+              ],
+              "path": [
+                "api",
+                "integraciones",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5. Error Validación - Nombre vacío (400 Bad Request)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"\",\n  \"proveedor\": \"Amadeus\",\n  \"estado\": \"ERROR\"\n}"
+            },
+            "url": {
+              "raw": "{{integracionesUrl}}/api/integraciones",
+              "host": [
+                "{{integracionesUrl}}"
+              ],
+              "path": [
+                "api",
+                "integraciones"
+              ]
+            }
+          }
+        },
+        {
+          "name": "6. Error - Recurso inexistente (404 Not Found)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{integracionesUrl}}/api/integraciones/9999",
+              "host": [
+                "{{integracionesUrl}}"
+              ],
+              "path": [
+                "api",
+                "integraciones",
+                "9999"
+              ]
+            }
+          }
+        },
+        {
+          "name": "7. Eliminar por ID (204 No Content)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{integracionesUrl}}/api/integraciones/1",
+              "host": [
+                "{{integracionesUrl}}"
+              ],
+              "path": [
+                "api",
+                "integraciones",
+                "1"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Fidelización (/api/fidelizacion)",
+      "item": [
+        {
+          "name": "1. Listar todos (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fidelizacionUrl}}/api/fidelizacion",
+              "host": [
+                "{{fidelizacionUrl}}"
+              ],
+              "path": [
+                "api",
+                "fidelizacion"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2. Crear con relación hijo (201 Created)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Cuenta Millas ViajaMejor Plus\",\n  \"viajero\": \"Andrés Osorio\",\n  \"puntos\": 15000.0,\n  \"movimientos\": [\n    {\n      \"concepto\": \"Acumulación vuelo SCL-CUN\",\n      \"cantidad\": 5000.0,\n      \"tipo\": \"ACUMULACION\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{fidelizacionUrl}}/api/fidelizacion",
+              "host": [
+                "{{fidelizacionUrl}}"
+              ],
+              "path": [
+                "api",
+                "fidelizacion"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3. Obtener por ID (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fidelizacionUrl}}/api/fidelizacion/1",
+              "host": [
+                "{{fidelizacionUrl}}"
+              ],
+              "path": [
+                "api",
+                "fidelizacion",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4. Actualizar con nuevos hijos (200 OK)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Cuenta Millas ViajaMejor Plus (VIP)\",\n  \"viajero\": \"Andrés Osorio\",\n  \"puntos\": 25000.0,\n  \"movimientos\": [\n    {\n      \"concepto\": \"Acumulación vuelo SCL-CUN\",\n      \"cantidad\": 5000.0,\n      \"tipo\": \"ACUMULACION\"\n    },\n    {\n      \"concepto\": \"Bono Fidelidad Tarjeta Black\",\n      \"cantidad\": 10000.0,\n      \"tipo\": \"BONIFICACION\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{fidelizacionUrl}}/api/fidelizacion/1",
+              "host": [
+                "{{fidelizacionUrl}}"
+              ],
+              "path": [
+                "api",
+                "fidelizacion",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5. Error Validación - Nombre vacío (400 Bad Request)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"\",\n  \"viajero\": \"Usuario Demo\",\n  \"puntos\": 0.0\n}"
+            },
+            "url": {
+              "raw": "{{fidelizacionUrl}}/api/fidelizacion",
+              "host": [
+                "{{fidelizacionUrl}}"
+              ],
+              "path": [
+                "api",
+                "fidelizacion"
+              ]
+            }
+          }
+        },
+        {
+          "name": "6. Error - Recurso inexistente (404 Not Found)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fidelizacionUrl}}/api/fidelizacion/9999",
+              "host": [
+                "{{fidelizacionUrl}}"
+              ],
+              "path": [
+                "api",
+                "fidelizacion",
+                "9999"
+              ]
+            }
+          }
+        },
+        {
+          "name": "7. Eliminar por ID (204 No Content)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{fidelizacionUrl}}/api/fidelizacion/1",
+              "host": [
+                "{{fidelizacionUrl}}"
+              ],
+              "path": [
+                "api",
+                "fidelizacion",
+                "1"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Notificaciones (/api/notificaciones)",
+      "item": [
+        {
+          "name": "1. Listar todos (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{notificacionesUrl}}/api/notificaciones",
+              "host": [
+                "{{notificacionesUrl}}"
+              ],
+              "path": [
+                "api",
+                "notificaciones"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2. Crear con relación hijo (201 Created)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Voucher Confirmación Reserva\",\n  \"tipo\": \"EMAIL_PDF_QR\",\n  \"canal\": \"AMAZON_SES\",\n  \"envios\": [\n    {\n      \"destinatario\": \"andres.osorio@duocuc.cl\",\n      \"estado\": \"ENVIADO\",\n      \"proveedor\": \"AWS_SES\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{notificacionesUrl}}/api/notificaciones",
+              "host": [
+                "{{notificacionesUrl}}"
+              ],
+              "path": [
+                "api",
+                "notificaciones"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3. Obtener por ID (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{notificacionesUrl}}/api/notificaciones/1",
+              "host": [
+                "{{notificacionesUrl}}"
+              ],
+              "path": [
+                "api",
+                "notificaciones",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4. Actualizar con nuevos hijos (200 OK)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Voucher Confirmación Reserva y Push App\",\n  \"tipo\": \"EMAIL_Y_PUSH\",\n  \"canal\": \"SES_Y_SNS\",\n  \"envios\": [\n    {\n      \"destinatario\": \"andres.osorio@duocuc.cl\",\n      \"estado\": \"ENVIADO\",\n      \"proveedor\": \"AWS_SES\"\n    },\n    {\n      \"destinatario\": \"+56912345678\",\n      \"estado\": \"ENTREGADO\",\n      \"proveedor\": \"AWS_SNS\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{notificacionesUrl}}/api/notificaciones/1",
+              "host": [
+                "{{notificacionesUrl}}"
+              ],
+              "path": [
+                "api",
+                "notificaciones",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5. Error Validación - Nombre vacío (400 Bad Request)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"\",\n  \"tipo\": \"SMS\",\n  \"canal\": \"TWILIO\"\n}"
+            },
+            "url": {
+              "raw": "{{notificacionesUrl}}/api/notificaciones",
+              "host": [
+                "{{notificacionesUrl}}"
+              ],
+              "path": [
+                "api",
+                "notificaciones"
+              ]
+            }
+          }
+        },
+        {
+          "name": "6. Error - Recurso inexistente (404 Not Found)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{notificacionesUrl}}/api/notificaciones/9999",
+              "host": [
+                "{{notificacionesUrl}}"
+              ],
+              "path": [
+                "api",
+                "notificaciones",
+                "9999"
+              ]
+            }
+          }
+        },
+        {
+          "name": "7. Eliminar por ID (204 No Content)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{notificacionesUrl}}/api/notificaciones/1",
+              "host": [
+                "{{notificacionesUrl}}"
+              ],
+              "path": [
+                "api",
+                "notificaciones",
+                "1"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

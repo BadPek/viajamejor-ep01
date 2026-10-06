@@ -1,5 +1,11 @@
 package cl.duoc.jv0101.caso06.pagos.model;
 
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.OneToMany;
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -50,5 +56,33 @@ public class Pago {
     public BigDecimal getMonto() { return monto; }
 
     public void setMonto(BigDecimal monto) { this.monto = monto; }
+
+
+    @OneToMany(mappedBy = "pago", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<Transaccion> transacciones = new ArrayList<>();
+
+    public List<Transaccion> getTransacciones() {
+        return transacciones;
+    }
+
+    public void setTransacciones(List<Transaccion> transacciones) {
+        if (transacciones == null) {
+            return;
+        }
+        this.transacciones = transacciones;
+        transacciones.forEach(item -> item.setPago(this));
+    }
+
+    public void addTransaccion(Transaccion item) {
+        item.setPago(this);
+        this.transacciones.add(item);
+    }
+
+    public void replaceTransacciones(List<Transaccion> nuevos) {
+        this.transacciones.clear();
+        if (nuevos != null) {
+            nuevos.forEach(item -> addTransaccion(item));
+        }
+    }
 
 }

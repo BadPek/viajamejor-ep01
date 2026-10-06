@@ -1,5 +1,11 @@
 package cl.duoc.jv0101.caso06.integraciones.model;
 
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.OneToMany;
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -49,5 +55,33 @@ public class Integracion {
     public String getEstado() { return estado; }
 
     public void setEstado(String estado) { this.estado = estado; }
+
+
+    @OneToMany(mappedBy = "integracion", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<RegistroLlamada> registros = new ArrayList<>();
+
+    public List<RegistroLlamada> getRegistros() {
+        return registros;
+    }
+
+    public void setRegistros(List<RegistroLlamada> registros) {
+        if (registros == null) {
+            return;
+        }
+        this.registros = registros;
+        registros.forEach(item -> item.setIntegracion(this));
+    }
+
+    public void addRegistroLlamada(RegistroLlamada item) {
+        item.setIntegracion(this);
+        this.registros.add(item);
+    }
+
+    public void replaceRegistros(List<RegistroLlamada> nuevos) {
+        this.registros.clear();
+        if (nuevos != null) {
+            nuevos.forEach(item -> addRegistroLlamada(item));
+        }
+    }
 
 }

@@ -32,6 +32,7 @@ public class ReservaService {
             existente.setNombre(datos.getNombre());
             existente.setProveedor(datos.getProveedor());
             existente.setFecha(datos.getFecha());
+            existente.replaceItems(datos.getItems());
             return repository.save(existente);
         });
     }

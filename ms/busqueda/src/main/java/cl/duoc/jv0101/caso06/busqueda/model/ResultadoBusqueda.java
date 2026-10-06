@@ -1,5 +1,11 @@
 package cl.duoc.jv0101.caso06.busqueda.model;
 
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.OneToMany;
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -50,5 +56,33 @@ public class ResultadoBusqueda {
     public BigDecimal getPrecio() { return precio; }
 
     public void setPrecio(BigDecimal precio) { this.precio = precio; }
+
+
+    @OneToMany(mappedBy = "resultadoBusqueda", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<FiltroBusqueda> filtros = new ArrayList<>();
+
+    public List<FiltroBusqueda> getFiltros() {
+        return filtros;
+    }
+
+    public void setFiltros(List<FiltroBusqueda> filtros) {
+        if (filtros == null) {
+            return;
+        }
+        this.filtros = filtros;
+        filtros.forEach(item -> item.setResultadoBusqueda(this));
+    }
+
+    public void addFiltroBusqueda(FiltroBusqueda item) {
+        item.setResultadoBusqueda(this);
+        this.filtros.add(item);
+    }
+
+    public void replaceFiltros(List<FiltroBusqueda> nuevos) {
+        this.filtros.clear();
+        if (nuevos != null) {
+            nuevos.forEach(item -> addFiltroBusqueda(item));
+        }
+    }
 
 }
