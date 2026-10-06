@@ -1,5 +1,11 @@
 package cl.duoc.jv0101.caso06.usuarios.model;
 
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.OneToMany;
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -49,5 +55,33 @@ public class Usuario {
     public String getNivel() { return nivel; }
 
     public void setNivel(String nivel) { this.nivel = nivel; }
+
+
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<Direccion> direcciones = new ArrayList<>();
+
+    public List<Direccion> getDirecciones() {
+        return direcciones;
+    }
+
+    public void setDirecciones(List<Direccion> direcciones) {
+        if (direcciones == null) {
+            return;
+        }
+        this.direcciones = direcciones;
+        direcciones.forEach(item -> item.setUsuario(this));
+    }
+
+    public void addDireccion(Direccion item) {
+        item.setUsuario(this);
+        this.direcciones.add(item);
+    }
+
+    public void replaceDirecciones(List<Direccion> nuevos) {
+        this.direcciones.clear();
+        if (nuevos != null) {
+            nuevos.forEach(item -> addDireccion(item));
+        }
+    }
 
 }

@@ -1,5 +1,11 @@
 package cl.duoc.jv0101.caso06.fidelizacion.model;
 
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.OneToMany;
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -50,5 +56,33 @@ public class Punto {
     public BigDecimal getPuntos() { return puntos; }
 
     public void setPuntos(BigDecimal puntos) { this.puntos = puntos; }
+
+
+    @OneToMany(mappedBy = "punto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<MovimientoPunto> movimientos = new ArrayList<>();
+
+    public List<MovimientoPunto> getMovimientos() {
+        return movimientos;
+    }
+
+    public void setMovimientos(List<MovimientoPunto> movimientos) {
+        if (movimientos == null) {
+            return;
+        }
+        this.movimientos = movimientos;
+        movimientos.forEach(item -> item.setPunto(this));
+    }
+
+    public void addMovimientoPunto(MovimientoPunto item) {
+        item.setPunto(this);
+        this.movimientos.add(item);
+    }
+
+    public void replaceMovimientos(List<MovimientoPunto> nuevos) {
+        this.movimientos.clear();
+        if (nuevos != null) {
+            nuevos.forEach(item -> addMovimientoPunto(item));
+        }
+    }
 
 }

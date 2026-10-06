@@ -32,6 +32,7 @@ public class PuntoService {
             existente.setNombre(datos.getNombre());
             existente.setViajero(datos.getViajero());
             existente.setPuntos(datos.getPuntos());
+            existente.replaceMovimientos(datos.getMovimientos());
             return repository.save(existente);
         });
     }

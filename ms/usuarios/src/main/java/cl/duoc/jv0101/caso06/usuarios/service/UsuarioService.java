@@ -32,6 +32,7 @@ public class UsuarioService {
             existente.setNombre(datos.getNombre());
             existente.setEmail(datos.getEmail());
             existente.setNivel(datos.getNivel());
+            existente.replaceDirecciones(datos.getDirecciones());
             return repository.save(existente);
         });
     }

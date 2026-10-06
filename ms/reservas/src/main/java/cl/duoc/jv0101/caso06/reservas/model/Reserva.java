@@ -1,5 +1,11 @@
 package cl.duoc.jv0101.caso06.reservas.model;
 
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.OneToMany;
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -49,5 +55,33 @@ public class Reserva {
     public String getFecha() { return fecha; }
 
     public void setFecha(String fecha) { this.fecha = fecha; }
+
+
+    @OneToMany(mappedBy = "reserva", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<ItemReserva> items = new ArrayList<>();
+
+    public List<ItemReserva> getItems() {
+        return items;
+    }
+
+    public void setItems(List<ItemReserva> items) {
+        if (items == null) {
+            return;
+        }
+        this.items = items;
+        items.forEach(item -> item.setReserva(this));
+    }
+
+    public void addItemReserva(ItemReserva item) {
+        item.setReserva(this);
+        this.items.add(item);
+    }
+
+    public void replaceItems(List<ItemReserva> nuevos) {
+        this.items.clear();
+        if (nuevos != null) {
+            nuevos.forEach(item -> addItemReserva(item));
+        }
+    }
 
 }

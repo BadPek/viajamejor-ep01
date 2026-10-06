@@ -32,6 +32,7 @@ public class ResultadoBusquedaService {
             existente.setNombre(datos.getNombre());
             existente.setProveedor(datos.getProveedor());
             existente.setPrecio(datos.getPrecio());
+            existente.replaceFiltros(datos.getFiltros());
             return repository.save(existente);
         });
     }

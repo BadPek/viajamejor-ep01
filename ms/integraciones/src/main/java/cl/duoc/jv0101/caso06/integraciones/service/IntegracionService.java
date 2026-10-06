@@ -32,6 +32,7 @@ public class IntegracionService {
             existente.setNombre(datos.getNombre());
             existente.setProveedor(datos.getProveedor());
             existente.setEstado(datos.getEstado());
+            existente.replaceRegistros(datos.getRegistros());
             return repository.save(existente);
         });
     }
