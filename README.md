@@ -164,12 +164,3 @@ java -jar target/reservas-svc-1.0.0.jar
 ```bash
 mvn test
 ```
-*(140 pruebas automáticas pasan al 100% en todo el proyecto)*.
-
----
-
-## 6. Documentos de la Evaluación
-
-- **[Pauta de Evaluación y Cumplimiento de Rúbrica (IE1 a IE12)](docs/01_Cumplimiento_Rubrica_EP02.md)**
-- **[Guion Oficial del Video de Presentación (3 a 8 minutos)](docs/02_Guion_Video_Presentacion_EP02.md)**
-- **[Diagramas de Arquitectura e Infraestructura AWS Multi-AZ](entrega/README.md)**
