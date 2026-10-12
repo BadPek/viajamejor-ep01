@@ -10,34 +10,6 @@ Este repositorio contiene la implementación completa de los **7 microservicios 
 
 ---
 
-## 1. Estructura del Repositorio
-
-```text
-caso06/
-├── docker-compose.yml              # Orquestador: MySQL 8.0 + los 7 microservicios
-├── README.md                       # Guía de ejecución y documentación principal
-├── postman/
-│   └── ViajaMejor-EP02.postman_collection.json  # 49 peticiones (casos felices y de error)
-├── docs/
-│   ├── 01_Cumplimiento_Rubrica_EP02.md          # Mapeo indicador por indicador (IE1 a IE12)
-│   └── 02_Guion_Video_Presentacion_EP02.md      # Guion paso a paso para el video (3-8 min)
-├── scripts/
-│   ├── build-all.ps1 / build-all.sh             # Compilación y empaquetado JAR de todos los servicios
-│   └── test-all.ps1 / test-all.sh               # Ejecución de pruebas y validación JaCoCo
-├── entrega/                                     # Diagramas de Arquitectura C4 e Infraestructura AWS (EP01)
-│   ├── c4/
-│   └── infraestructura/
-└── ms/
-    ├── usuarios/                   # /api/usuarios       (Puerto 8081)
-    ├── busqueda/                   # /api/busqueda       (Puerto 8082)
-    ├── reservas/                   # /api/reservas       (Puerto 8083)
-    ├── pagos/                      # /api/pagos          (Puerto 8084)
-    ├── integraciones/              # /api/integraciones  (Puerto 8085)
-    ├── fidelizacion/               # /api/fidelizacion   (Puerto 8086)
-    └── notificaciones/             # /api/notificaciones (Puerto 8087)
-```
-
----
 
 ## 2. Microservicios y Mapeo Relacional JPA (IE1, IE2, IE6)
 
