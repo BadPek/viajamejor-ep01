@@ -6,7 +6,7 @@
 > **Estudiante:** Andrés Osorio Escobar  
 > **Docente:** Mauricio Andrés Velásquez Silva  
 
-Este repositorio contiene la implementación completa de los **7 microservicios Spring Boot** de la plataforma de viajes **ViajaMejor (Caso 06)** para la Evaluación Parcial N°2. Cada microservicio cuenta con arquitectura en capas, persistencia relacional con **relaciones JPA (`@OneToMany` / `@ManyToOne`)**, perfiles duales **H2 / MySQL**, manejo global homogéneo de excepciones, colección de pruebas en **Postman**, empaquetado Maven y orquestación con **Docker Compose**.
+Este repositorio contiene la implementación completa de los **7 microservicios Spring Boot** de la plataforma de viajes **ViajaMejor (Caso 06)** para la Evaluación Parcial N°2
 
 ---
 
