@@ -61,7 +61,7 @@ Push-Location $baseDir
 git init
 git branch -M main
 git add .
-git commit -m "docs: entrega EP01 ViajaMejor - diagramas C4, arquitectura AWS multi-AZ, justificacion y guion"
+git commit -m "docs: arquitectura y diagramas C4 e infraestructura AWS multi-AZ"
 git remote remove origin 2>$null
 git remote add origin "https://github.com/$GithubUser/viajamejor-arquitectura-entrega.git"
 git push -u origin main --force
