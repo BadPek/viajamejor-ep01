@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
-# Ejecuta pruebas y valida cobertura JaCoCo en los 7 microservicios.
+# Ejecuta compilacion, pruebas unitarias/MockMvc/Cucumber y cobertura JaCoCo (mvn clean verify)
+# en los 7 microservicios y las pruebas de la funcion serverless.
 set -euo pipefail
+
 SERVICES="usuarios busqueda reservas pagos integraciones fidelizacion notificaciones"
 for s in $SERVICES; do
-  echo "== probando ms/$s =="
-  (cd "ms/$s" && mvn -q test)
+  echo "== verificando ms/$s (mvn clean verify) =="
+  (cd "ms/$s" && mvn -B -q clean verify)
 done
-echo "OK: pruebas unitarias, MockMvc, Cucumber y JaCoCo completadas con exito."
+
+echo "== verificando funcion serverless (voucher-generator) =="
+python3 -m unittest discover -s serverless/voucher-generator -v
+
+echo "OK: 7 microservicios (JaCoCo 100%) y funcion serverless verificados con exito."

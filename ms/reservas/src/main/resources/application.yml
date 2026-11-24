@@ -10,6 +10,21 @@ spring:
 server:
   port: ${PORT:8080}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+
+viajamejor:
+  aws:
+    region: ${AWS_REGION:us-east-1}
+    sqs:
+      queue-url: ${SQS_RESERVAS_QUEUE_URL:}
+
 springdoc:
   api-docs:
     path: /v3/api-docs

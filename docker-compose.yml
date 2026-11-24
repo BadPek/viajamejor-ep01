@@ -1,9 +1,10 @@
 x-ms-env: &ms-env
   SPRING_PROFILES_ACTIVE: mysql
-  DB_HOST: mysql
-  DB_PORT: 3306
-  DB_USER: root
-  DB_PASSWORD: root
+  DB_HOST: ${DB_HOST:-mysql}
+  DB_PORT: ${DB_PORT:-3306}
+  DB_USER: ${DB_USER:-root}
+  DB_PASSWORD: ${DB_PASSWORD:?Definir DB_PASSWORD en archivo .env (ver .env.example)}
+  AWS_REGION: ${AWS_REGION:-us-east-1}
 
 services:
 
@@ -11,13 +12,15 @@ services:
     image: mysql:8.0
     container_name: viajamejor-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Definir MYSQL_ROOT_PASSWORD en archivo .env (ver .env.example)}
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    networks:
+      - viajamejor-net
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$$MYSQL_ROOT_PASSWORD"]
       interval: 10s
       timeout: 5s
       retries: 15
@@ -25,12 +28,15 @@ services:
 
   usuarios:
     build: ./ms/usuarios
+    image: ${DOCKER_REGISTRY:-ghcr.io/badpek}/viajamejor-usuarios:${IMAGE_TAG:-latest}
     container_name: viajamejor-usuarios
     environment:
       <<: *ms-env
       DB_NAME: usuariosdb
     ports:
       - "8081:8080"
+    networks:
+      - viajamejor-net
     depends_on:
       mysql:
         condition: service_healthy
@@ -38,12 +44,15 @@ services:
 
   busqueda:
     build: ./ms/busqueda
+    image: ${DOCKER_REGISTRY:-ghcr.io/badpek}/viajamejor-busqueda:${IMAGE_TAG:-latest}
     container_name: viajamejor-busqueda
     environment:
       <<: *ms-env
       DB_NAME: busquedadb
     ports:
       - "8082:8080"
+    networks:
+      - viajamejor-net
     depends_on:
       mysql:
         condition: service_healthy
@@ -51,12 +60,19 @@ services:
 
   reservas:
     build: ./ms/reservas
+    image: ${DOCKER_REGISTRY:-ghcr.io/badpek}/viajamejor-reservas:${IMAGE_TAG:-latest}
     container_name: viajamejor-reservas
     environment:
       <<: *ms-env
       DB_NAME: reservasdb
+      SQS_RESERVAS_QUEUE_URL: ${SQS_RESERVAS_QUEUE_URL:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
     ports:
       - "8083:8080"
+    networks:
+      - viajamejor-net
     depends_on:
       mysql:
         condition: service_healthy
@@ -64,12 +80,15 @@ services:
 
   pagos:
     build: ./ms/pagos
+    image: ${DOCKER_REGISTRY:-ghcr.io/badpek}/viajamejor-pagos:${IMAGE_TAG:-latest}
     container_name: viajamejor-pagos
     environment:
       <<: *ms-env
       DB_NAME: pagosdb
     ports:
       - "8084:8080"
+    networks:
+      - viajamejor-net
     depends_on:
       mysql:
         condition: service_healthy
@@ -77,12 +96,15 @@ services:
 
   integraciones:
     build: ./ms/integraciones
+    image: ${DOCKER_REGISTRY:-ghcr.io/badpek}/viajamejor-integraciones:${IMAGE_TAG:-latest}
     container_name: viajamejor-integraciones
     environment:
       <<: *ms-env
       DB_NAME: integracionesdb
     ports:
       - "8085:8080"
+    networks:
+      - viajamejor-net
     depends_on:
       mysql:
         condition: service_healthy
@@ -90,12 +112,15 @@ services:
 
   fidelizacion:
     build: ./ms/fidelizacion
+    image: ${DOCKER_REGISTRY:-ghcr.io/badpek}/viajamejor-fidelizacion:${IMAGE_TAG:-latest}
     container_name: viajamejor-fidelizacion
     environment:
       <<: *ms-env
       DB_NAME: fidelizaciondb
     ports:
       - "8086:8080"
+    networks:
+      - viajamejor-net
     depends_on:
       mysql:
         condition: service_healthy
@@ -103,16 +128,28 @@ services:
 
   notificaciones:
     build: ./ms/notificaciones
+    image: ${DOCKER_REGISTRY:-ghcr.io/badpek}/viajamejor-notificaciones:${IMAGE_TAG:-latest}
     container_name: viajamejor-notificaciones
     environment:
       <<: *ms-env
       DB_NAME: notificacionesdb
+      SQS_NOTIFICACIONES_QUEUE_URL: ${SQS_NOTIFICACIONES_QUEUE_URL:-}
+      SQS_POLLING_ENABLED: ${SQS_POLLING_ENABLED:-false}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
     ports:
       - "8087:8080"
+    networks:
+      - viajamejor-net
     depends_on:
       mysql:
         condition: service_healthy
     restart: unless-stopped
+
+networks:
+  viajamejor-net:
+    driver: bridge
 
 volumes:
   mysql_data:

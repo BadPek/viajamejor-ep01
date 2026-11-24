@@ -1,0 +1,197 @@
+version: "3.8"
+
+x-ms-env: &ms-env
+  SPRING_PROFILES_ACTIVE: mysql
+  DB_HOST: ${DB_HOST:-mysql}
+  DB_PORT: ${DB_PORT:-3306}
+  DB_USER: ${DB_USER:-root}
+  DB_PASSWORD: ${DB_PASSWORD}
+  AWS_REGION: ${AWS_REGION:-us-east-1}
+  JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=70.0 -Xmx256m"
+
+x-ms-deploy-core: &ms-deploy-core
+  mode: replicated
+  replicas: 2
+  placement:
+    preferences:
+      - spread: node.id
+  resources:
+    limits:
+      cpus: "0.50"
+      memory: 384M
+    reservations:
+      cpus: "0.15"
+      memory: 192M
+  restart_policy:
+    condition: on-failure
+    delay: 5s
+    max_attempts: 5
+    window: 120s
+  update_config:
+    parallelism: 1
+    delay: 10s
+    failure_action: rollback
+    order: start-first
+  rollback_config:
+    parallelism: 1
+    delay: 5s
+
+x-ms-deploy-aux: &ms-deploy-aux
+  <<: *ms-deploy-core
+  replicas: 1
+
+services:
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+    secrets:
+      - db_root_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - viajamejor-overlay
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+
+  usuarios:
+    image: ${DOCKER_REGISTRY:-ghcr.io/badpek}/viajamejor-usuarios:${IMAGE_TAG:-latest}
+    environment:
+      <<: *ms-env
+      DB_NAME: usuariosdb
+    ports:
+      - target: 8080
+        published: 8081
+        protocol: tcp
+        mode: ingress
+    networks:
+      - viajamejor-overlay
+    deploy:
+      <<: *ms-deploy-core
+
+  busqueda:
+    image: ${DOCKER_REGISTRY:-ghcr.io/badpek}/viajamejor-busqueda:${IMAGE_TAG:-latest}
+    environment:
+      <<: *ms-env
+      DB_NAME: busquedadb
+    ports:
+      - target: 8080
+        published: 8082
+        protocol: tcp
+        mode: ingress
+    networks:
+      - viajamejor-overlay
+    deploy:
+      <<: *ms-deploy-core
+
+  reservas:
+    image: ${DOCKER_REGISTRY:-ghcr.io/badpek}/viajamejor-reservas:${IMAGE_TAG:-latest}
+    environment:
+      <<: *ms-env
+      DB_NAME: reservasdb
+      SQS_RESERVAS_QUEUE_URL: ${SQS_RESERVAS_QUEUE_URL:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+    ports:
+      - target: 8080
+        published: 8083
+        protocol: tcp
+        mode: ingress
+    networks:
+      - viajamejor-overlay
+    deploy:
+      <<: *ms-deploy-core
+
+  pagos:
+    image: ${DOCKER_REGISTRY:-ghcr.io/badpek}/viajamejor-pagos:${IMAGE_TAG:-latest}
+    environment:
+      <<: *ms-env
+      DB_NAME: pagosdb
+    ports:
+      - target: 8080
+        published: 8084
+        protocol: tcp
+        mode: ingress
+    networks:
+      - viajamejor-overlay
+    deploy:
+      <<: *ms-deploy-aux
+
+  integraciones:
+    image: ${DOCKER_REGISTRY:-ghcr.io/badpek}/viajamejor-integraciones:${IMAGE_TAG:-latest}
+    environment:
+      <<: *ms-env
+      DB_NAME: integracionesdb
+    ports:
+      - target: 8080
+        published: 8085
+        protocol: tcp
+        mode: ingress
+    networks:
+      - viajamejor-overlay
+    deploy:
+      <<: *ms-deploy-aux
+
+  fidelizacion:
+    image: ${DOCKER_REGISTRY:-ghcr.io/badpek}/viajamejor-fidelizacion:${IMAGE_TAG:-latest}
+    environment:
+      <<: *ms-env
+      DB_NAME: fidelizaciondb
+    ports:
+      - target: 8080
+        published: 8086
+        protocol: tcp
+        mode: ingress
+    networks:
+      - viajamejor-overlay
+    deploy:
+      <<: *ms-deploy-aux
+
+  notificaciones:
+    image: ${DOCKER_REGISTRY:-ghcr.io/badpek}/viajamejor-notificaciones:${IMAGE_TAG:-latest}
+    environment:
+      <<: *ms-env
+      DB_NAME: notificacionesdb
+      SQS_NOTIFICACIONES_QUEUE_URL: ${SQS_NOTIFICACIONES_QUEUE_URL:-}
+      SQS_POLLING_ENABLED: ${SQS_POLLING_ENABLED:-true}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+    ports:
+      - target: 8080
+        published: 8087
+        protocol: tcp
+        mode: ingress
+    networks:
+      - viajamejor-overlay
+    deploy:
+      <<: *ms-deploy-core
+
+networks:
+  viajamejor-overlay:
+    driver: overlay
+    attachable: true
+
+volumes:
+  mysql_data:
+
+secrets:
+  db_root_password:
+    external: true

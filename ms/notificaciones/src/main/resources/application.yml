@@ -10,6 +10,23 @@ spring:
 server:
   port: ${PORT:8080}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+
+viajamejor:
+  aws:
+    region: ${AWS_REGION:us-east-1}
+    sqs:
+      queue-url: ${SQS_NOTIFICACIONES_QUEUE_URL:}
+      polling-enabled: ${SQS_POLLING_ENABLED:false}
+      poll-interval-ms: ${SQS_POLL_INTERVAL_MS:10000}
+
 springdoc:
   api-docs:
     path: /v3/api-docs

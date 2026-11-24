@@ -1,0 +1,14 @@
+{
+  "Records": [
+    {
+      "messageId": "demo-msg-001",
+      "receiptHandle": "demo-receipt-handle",
+      "body": "{\"eventType\":\"RESERVA_CONFIRMADA\",\"source\":\"ms-reservas\",\"reservaId\":101,\"nombre\":\"Vacaciones Cancun Verano 2026\",\"proveedor\":\"Amadeus GDS\",\"fecha\":\"2026-12-15\",\"destinatario\":\"andres.osorio@duocuc.cl\",\"items\":[{\"descripcion\":\"Boleto Aereo SCL-CUN\",\"cantidad\":2,\"precioUnitario\":450000.00},{\"descripcion\":\"Hotel Grand Oasis All Inclusive\",\"cantidad\":5,\"precioUnitario\":180000.00}]}",
+      "attributes": {
+        "ApproximateReceiveCount": "1"
+      },
+      "eventSource": "aws:sqs",
+      "awsRegion": "us-east-1"
+    }
+  ]
+}

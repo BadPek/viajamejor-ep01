@@ -1,0 +1,137 @@
+{
+  "info": {
+    "name": "ViajaMejor EP03 — Cloud, API Gateway, Serverless & E2E",
+    "description": "Coleccion de pruebas para validacion local de contenedores, proteccion con Amazon API Gateway (403 sin API Key vs 200/201 con API Key), ejecucion de funcion Serverless AWS Lambda y flujo End-to-End (API Gateway -> ms-reservas -> MySQL -> SQS -> Lambda -> S3 -> ms-notificaciones).",
+    "_postman_id": "viajamejor-ep03-cloud-e2e",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "swarmHost", "value": "http://localhost" },
+    { "key": "apiGatewayUrl", "value": "https://<API_ID>.execute-api.us-east-1.amazonaws.com/prod" },
+    { "key": "apiKey", "value": "<REEMPLAZAR_CON_API_KEY_AWS>" }
+  ],
+  "item": [
+    {
+      "name": "1. Healthchecks Contenedores y Swarm",
+      "item": [
+        {
+          "name": "Healthcheck ms-usuarios (8081)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{swarmHost}}:8081/actuator/health", "host": ["{{swarmHost}}:8081"], "path": ["actuator", "health"] }
+          }
+        },
+        {
+          "name": "Healthcheck ms-busqueda (8082)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{swarmHost}}:8082/actuator/health", "host": ["{{swarmHost}}:8082"], "path": ["actuator", "health"] }
+          }
+        },
+        {
+          "name": "Healthcheck ms-reservas (8083) + X-Instance-Host",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{swarmHost}}:8083/actuator/health", "host": ["{{swarmHost}}:8083"], "path": ["actuator", "health"] }
+          }
+        },
+        {
+          "name": "Healthcheck ms-notificaciones (8087)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{swarmHost}}:8087/actuator/health", "host": ["{{swarmHost}}:8087"], "path": ["actuator", "health"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Proteccion API Gateway (Sin vs Con API Key)",
+      "item": [
+        {
+          "name": "SIN API Key -> Debe devolver 403 Forbidden",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{apiGatewayUrl}}/reservas", "host": ["{{apiGatewayUrl}}"], "path": ["reservas"] }
+          }
+        },
+        {
+          "name": "CON API Key -> Debe devolver 200 OK",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "x-api-key", "value": "{{apiKey}}" }
+            ],
+            "url": { "raw": "{{apiGatewayUrl}}/reservas", "host": ["{{apiGatewayUrl}}"], "path": ["reservas"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Funcion Serverless (Lambda Voucher Generator via API Gateway)",
+      "item": [
+        {
+          "name": "POST /voucher SIN API Key -> 403 Forbidden",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservaId\": 500,\n  \"nombre\": \"Prueba Sin Credencial\"\n}"
+            },
+            "url": { "raw": "{{apiGatewayUrl}}/voucher", "host": ["{{apiGatewayUrl}}"], "path": ["voucher"] }
+          }
+        },
+        {
+          "name": "POST /voucher CON API Key -> 200 OK (Genera QR + Guarda en S3)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-api-key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservaId\": 501,\n  \"nombre\": \"Paquete Bariloche Invierno 2026\",\n  \"proveedor\": \"Amadeus GDS\",\n  \"fecha\": \"2026-12-20\",\n  \"destinatario\": \"andres.osorio@duocuc.cl\",\n  \"items\": [\n    { \"descripcion\": \"Vuelo SCL-BRC\", \"cantidad\": 2, \"precioUnitario\": 220000.00 },\n    { \"descripcion\": \"Hotel Llao Llao 4 noches\", \"cantidad\": 4, \"precioUnitario\": 195000.00 }\n  ]\n}"
+            },
+            "url": { "raw": "{{apiGatewayUrl}}/voucher", "host": ["{{apiGatewayUrl}}"], "path": ["voucher"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Prueba End-to-End (E2E): Gateway -> Swarm -> BD -> SQS -> Lambda -> S3 -> Notificaciones",
+      "item": [
+        {
+          "name": "Paso 1: Crear Reserva via API Gateway (dispara SQS -> Lambda -> S3)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-api-key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Reserva E2E Cancun 2026\",\n  \"proveedor\": \"Amadeus GDS\",\n  \"fecha\": \"2026-12-18\",\n  \"items\": [\n    { \"descripcion\": \"Boleto Aereo SCL-CUN\", \"cantidad\": 2, \"precioUnitario\": 450000.00 },\n    { \"descripcion\": \"Hotel All Inclusive 5 noches\", \"cantidad\": 5, \"precioUnitario\": 180000.00 }\n  ]\n}"
+            },
+            "url": { "raw": "{{apiGatewayUrl}}/reservas", "host": ["{{apiGatewayUrl}}"], "path": ["reservas"] }
+          }
+        },
+        {
+          "name": "Paso 2: Verificar Notificacion persistida por Consumidor SQS",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "x-api-key", "value": "{{apiKey}}" }
+            ],
+            "url": { "raw": "{{apiGatewayUrl}}/notificaciones", "host": ["{{apiGatewayUrl}}"], "path": ["notificaciones"] }
+          }
+        }
+      ]
+    }
+  ]
+}

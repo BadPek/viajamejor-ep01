@@ -3,6 +3,7 @@ package cl.duoc.jv0101.caso06.reservas.service;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
+import cl.duoc.jv0101.caso06.reservas.messaging.ReservaEventPublisher;
 import cl.duoc.jv0101.caso06.reservas.model.Reserva;
 import cl.duoc.jv0101.caso06.reservas.repository.ReservaRepository;
 
@@ -10,9 +11,11 @@ import cl.duoc.jv0101.caso06.reservas.repository.ReservaRepository;
 public class ReservaService {
 
     private final ReservaRepository repository;
+    private final ReservaEventPublisher eventPublisher;
 
-    public ReservaService(ReservaRepository repository) {
+    public ReservaService(ReservaRepository repository, ReservaEventPublisher eventPublisher) {
         this.repository = repository;
+        this.eventPublisher = eventPublisher;
     }
 
     public List<Reserva> findAll() {
@@ -24,7 +27,9 @@ public class ReservaService {
     }
 
     public Reserva create(Reserva recurso) {
-        return repository.save(recurso);
+        Reserva guardada = repository.save(recurso);
+        eventPublisher.publicarReservaConfirmada(guardada);
+        return guardada;
     }
 
     public Optional<Reserva> update(Long id, Reserva datos) {

@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: ViajaMejor (Caso 06) - Funcion Serverless generadora de vouchers con SQS, DLQ, S3 y API Gateway
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: prod
+  ExecutionRoleArn:
+    Type: String
+    Description: ARN del rol IAM existente (en AWS Academy usar arn:aws:iam::<ACCOUNT_ID>:role/LabRole)
+
+Resources:
+  VouchersBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "viajamejor-vouchers-${AWS::AccountId}-${EnvironmentName}"
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  ReservasDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "viajamejor-reservas-dlq-${EnvironmentName}"
+      MessageRetentionPeriod: 1209600
+
+  ReservasQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "viajamejor-reservas-queue-${EnvironmentName}"
+      VisibilityTimeout: 60
+      MessageRetentionPeriod: 345600
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ReservasDLQ.Arn
+        maxReceiveCount: 3
+
+  NotificacionesQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "viajamejor-notificaciones-queue-${EnvironmentName}"
+      VisibilityTimeout: 60
+      MessageRetentionPeriod: 345600
+
+  VoucherGeneratorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "viajamejor-voucher-generator-${EnvironmentName}"
+      Runtime: python3.12
+      Handler: handler.lambda_handler
+      CodeUri: .
+      Role: !Ref ExecutionRoleArn
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          VOUCHERS_BUCKET: !Ref VouchersBucket
+          SQS_NOTIFICACIONES_QUEUE_URL: !Ref NotificacionesQueue
+      Events:
+        ReservaConfirmadaSQS:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt ReservasQueue.Arn
+            BatchSize: 5
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+
+Outputs:
+  VoucherFunctionArn:
+    Value: !GetAtt VoucherGeneratorFunction.Arn
+  ReservasQueueUrl:
+    Value: !Ref ReservasQueue
+  NotificacionesQueueUrl:
+    Value: !Ref NotificacionesQueue
+  VouchersBucketName:
+    Value: !Ref VouchersBucket

@@ -1,5 +1,13 @@
 target/
-*.class
+.git/
+.gitignore
 .idea/
 .vscode/
 *.iml
+*.md
+*.log
+docs/
+Dockerfile
+docker-compose*.yml
+.env
+.env.*

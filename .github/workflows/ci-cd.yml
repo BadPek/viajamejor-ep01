@@ -1,0 +1,282 @@
+name: CI/CD — ViajaMejor Cloud Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+jobs:
+  # =========================================================================
+  # Etapa 1A: Build, pruebas unitarias/MockMvc/Cucumber y cobertura JaCoCo
+  # =========================================================================
+  build-and-test:
+    name: Build & Test (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - usuarios
+          - busqueda
+          - reservas
+          - pagos
+          - integraciones
+          - fidelizacion
+          - notificaciones
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 21 (Eclipse Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Compilar, probar y validar cobertura JaCoCo (mvn clean verify)
+        run: mvn -B -f ms/${{ matrix.service }}/pom.xml clean verify
+
+  # =========================================================================
+  # Etapa 1B: Pruebas unitarias de la funcion Serverless (AWS Lambda)
+  # =========================================================================
+  test-serverless:
+    name: Test Serverless (voucher-generator)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Ejecutar pruebas unitarias del handler Lambda
+        run: python3 -m unittest discover -s serverless/voucher-generator -v
+
+  # =========================================================================
+  # Etapa 2: Construccion multi-stage y publicacion de imagenes en GHCR
+  # =========================================================================
+  build-and-push-images:
+    name: Docker Build & Push (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    needs: [ build-and-test, test-serverless ]
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - usuarios
+          - busqueda
+          - reservas
+          - pagos
+          - integraciones
+          - fidelizacion
+          - notificaciones
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Normalizar nombre de propietario en minusculas para GHCR
+        id: meta
+        run: |
+          OWNER_LOWER="$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')"
+          echo "owner=${OWNER_LOWER}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Iniciar sesion en GitHub Container Registry (GHCR)
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Construir y publicar imagen optimizada Alpine
+        uses: docker/build-push-action@v6
+        with:
+          context: ./ms/${{ matrix.service }}
+          file: ./ms/${{ matrix.service }}/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.owner }}/viajamejor-${{ matrix.service }}:latest
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.owner }}/viajamejor-${{ matrix.service }}:${{ steps.meta.outputs.short_sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # =========================================================================
+  # Etapa 3: Provision automatizada de infraestructura Cloud (AWS)
+  #   - S3 (vouchers), SQS + DLQ (colas), RDS MySQL (BD),
+  #   - AWS Lambda (serverless + trigger SQS) y API Gateway (API Key)
+  # =========================================================================
+  provision-cloud:
+    name: Provision Cloud (S3, SQS+DLQ, RDS, Lambda, API Gateway)
+    runs-on: ubuntu-latest
+    needs: [ build-and-push-images ]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    outputs:
+      vouchers_bucket: ${{ steps.export_outputs.outputs.vouchers_bucket }}
+      sqs_reservas_queue_url: ${{ steps.export_outputs.outputs.sqs_reservas_queue_url }}
+      sqs_notificaciones_queue_url: ${{ steps.export_outputs.outputs.sqs_notificaciones_queue_url }}
+      rds_endpoint: ${{ steps.export_outputs.outputs.rds_endpoint }}
+      api_gateway_url: ${{ steps.export_outputs.outputs.api_gateway_url }}
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Verificar credenciales AWS configuradas en GitHub Secrets
+        id: check_aws
+        env:
+          AWS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        run: |
+          if [[ -n "${AWS_KEY}" ]]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Secret AWS_ACCESS_KEY_ID no configurado. Configura los Secrets de AWS en Settings -> Secrets -> Actions para ejecutar la provision cloud."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configurar credenciales AWS
+        if: steps.check_aws.outputs.configured == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Provisionar Amazon S3 y colas Amazon SQS (+ DLQ)
+        if: steps.check_aws.outputs.configured == 'true'
+        run: bash infra/01-provision-storage-and-queues.sh
+
+      - name: Provisionar base de datos relacional Amazon RDS MySQL 8.0
+        if: steps.check_aws.outputs.configured == 'true'
+        env:
+          DB_USER: ${{ secrets.DB_USER || 'admin' }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          SKIP_RDS_PROVISION: ${{ vars.SKIP_RDS_PROVISION || 'false' }}
+          WAIT_FOR_RDS: ${{ vars.WAIT_FOR_RDS || 'false' }}
+        run: bash infra/02-provision-database.sh
+
+      - name: Desplegar funcion Serverless AWS Lambda y asociar trigger SQS
+        if: steps.check_aws.outputs.configured == 'true'
+        env:
+          LAMBDA_ROLE_ARN: ${{ secrets.LAMBDA_ROLE_ARN }}
+        run: bash infra/03-deploy-serverless.sh
+
+      - name: Provisionar Amazon API Gateway protegido con API Key
+        if: steps.check_aws.outputs.configured == 'true'
+        env:
+          SWARM_MANAGER_HOST: ${{ secrets.SWARM_MANAGER_HOST }}
+        run: bash infra/04-provision-api-gateway.sh
+
+      - name: Exportar outputs de provision cloud
+        id: export_outputs
+        run: |
+          echo "vouchers_bucket=${VOUCHERS_BUCKET:-}" >> "$GITHUB_OUTPUT"
+          echo "sqs_reservas_queue_url=${SQS_RESERVAS_QUEUE_URL:-}" >> "$GITHUB_OUTPUT"
+          echo "sqs_notificaciones_queue_url=${SQS_NOTIFICACIONES_QUEUE_URL:-}" >> "$GITHUB_OUTPUT"
+          echo "rds_endpoint=${RDS_ENDPOINT:-}" >> "$GITHUB_OUTPUT"
+          echo "api_gateway_url=${API_GATEWAY_URL:-}" >> "$GITHUB_OUTPUT"
+
+  # =========================================================================
+  # Etapa 4: Despliegue continuo en cluster Docker Swarm (Manager + Workers)
+  # =========================================================================
+  deploy-swarm:
+    name: Deploy Stack en Docker Swarm
+    runs-on: ubuntu-latest
+    needs: [ build-and-push-images, provision-cloud ]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Verificar secrets de conexion al nodo Manager Swarm
+        id: check_swarm
+        env:
+          SWARM_HOST: ${{ secrets.SWARM_MANAGER_HOST }}
+          SWARM_KEY: ${{ secrets.SWARM_SSH_KEY }}
+        run: |
+          if [[ -n "${SWARM_HOST}" && -n "${SWARM_KEY}" ]]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Secrets SWARM_MANAGER_HOST / SWARM_SSH_KEY no configurados. Configuralos en Settings -> Secrets -> Actions para habilitar despliegue continuo."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Desplegar stack viajamejor en el cluster Swarm via SSH
+        if: steps.check_swarm.outputs.configured == 'true'
+        env:
+          SWARM_HOST: ${{ secrets.SWARM_MANAGER_HOST }}
+          SWARM_USER: ${{ secrets.SWARM_SSH_USER || 'ubuntu' }}
+          SWARM_SSH_KEY: ${{ secrets.SWARM_SSH_KEY }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_ACTOR: ${{ github.actor }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          DB_USER: ${{ secrets.DB_USER || 'root' }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          RDS_ENDPOINT: ${{ needs.provision-cloud.outputs.rds_endpoint }}
+          SQS_RESERVAS_QUEUE_URL: ${{ needs.provision-cloud.outputs.sqs_reservas_queue_url }}
+          SQS_NOTIFICACIONES_QUEUE_URL: ${{ needs.provision-cloud.outputs.sqs_notificaciones_queue_url }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+        run: |
+          mkdir -p ~/.ssh
+          printf "%s\n" "${SWARM_SSH_KEY}" > ~/.ssh/swarm_key
+          chmod 600 ~/.ssh/swarm_key
+          ssh-keyscan -H "${SWARM_HOST}" >> ~/.ssh/known_hosts 2>/dev/null
+
+          OWNER_LOWER="$(echo "${REPO_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          DB_HOST_TARGET="${RDS_ENDPOINT:-mysql}"
+          if [[ "${DB_HOST_TARGET}" == "None" || -z "${DB_HOST_TARGET}" ]]; then
+            DB_HOST_TARGET="mysql"
+          fi
+
+          ssh -i ~/.ssh/swarm_key "${SWARM_USER}@${SWARM_HOST}" "mkdir -p ~/viajamejor/swarm"
+          scp -i ~/.ssh/swarm_key docker-compose.swarm.yml "${SWARM_USER}@${SWARM_HOST}:~/viajamejor/docker-compose.swarm.yml"
+          scp -i ~/.ssh/swarm_key swarm/deploy-stack.sh "${SWARM_USER}@${SWARM_HOST}:~/viajamejor/swarm/deploy-stack.sh"
+
+          ssh -i ~/.ssh/swarm_key "${SWARM_USER}@${SWARM_HOST}" bash -s <<REMOTE
+            set -euo pipefail
+            echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_ACTOR}" --password-stdin
+            export DOCKER_REGISTRY="ghcr.io/${OWNER_LOWER}"
+            export IMAGE_TAG="${GITHUB_SHA::7}"
+            export DB_HOST="${DB_HOST_TARGET}"
+            export DB_USER="${DB_USER}"
+            export DB_PASSWORD="${DB_PASSWORD}"
+            export AWS_REGION="${AWS_REGION}"
+            export SQS_RESERVAS_QUEUE_URL="${SQS_RESERVAS_QUEUE_URL}"
+            export SQS_NOTIFICACIONES_QUEUE_URL="${SQS_NOTIFICACIONES_QUEUE_URL}"
+            export SQS_POLLING_ENABLED="true"
+            export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
+            export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
+            export AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}"
+
+            cd ~/viajamejor
+            chmod +x swarm/deploy-stack.sh
+            bash swarm/deploy-stack.sh
+
+            echo "== Smoke test HTTP del servicio reservas en Swarm =="
+            for i in \$(seq 1 12); do
+              if curl -sf http://localhost:8083/actuator/health | grep -q '"status":"UP"'; then
+                echo "OK: ms-reservas saludable y respondiendo en la nube."
+                exit 0
+              fi
+              sleep 5
+            done
+            echo "Aviso: servicios desplegados; verificar convergencia con docker service logs viajamejor_reservas."
+          REMOTE

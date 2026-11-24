@@ -8,3 +8,12 @@ target/
 .DS_Store
 Thumbs.db
 *.tar.gz
+*.zip
+*.pem
+.env
+.env.local
+.env.prod
+infra/outputs.env
+__pycache__/
+**/__pycache__/
+*.pyc

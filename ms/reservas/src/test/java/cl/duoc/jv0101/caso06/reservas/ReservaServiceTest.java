@@ -1,6 +1,5 @@
 package cl.duoc.jv0101.caso06.reservas;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -8,6 +7,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import cl.duoc.jv0101.caso06.reservas.messaging.ReservaEventPublisher;
 import cl.duoc.jv0101.caso06.reservas.model.Reserva;
 import cl.duoc.jv0101.caso06.reservas.repository.ReservaRepository;
 import cl.duoc.jv0101.caso06.reservas.service.ReservaService;
@@ -22,6 +22,9 @@ class ReservaServiceTest {
 
     @Mock
     private ReservaRepository repository;
+
+    @Mock
+    private ReservaEventPublisher eventPublisher;
 
     @InjectMocks
     private ReservaService service;
@@ -54,21 +57,23 @@ class ReservaServiceTest {
     }
 
     @Test
-    void crearGuarda() {
+    void crearGuardaYPublicaEvento() {
         when(repository.save(any())).thenReturn(recurso());
-        assertThat(service.create(recurso()).getNombre()).isEqualTo("Demo");
+        Reserva creada = service.create(recurso());
+        assertThat(creada.getNombre()).isEqualTo("Demo");
+        verify(eventPublisher).publicarReservaConfirmada(creada);
     }
 
-@Test
-        void actualizarExistente() {
-            Reserva datos = recurso();
-            datos.setNombre("Actualizado");
-            when(repository.findById(1L)).thenReturn(Optional.of(recurso()));
-            when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-            Optional<Reserva> resultado = service.update(1L, datos);
-            assertThat(resultado).isPresent();
-            assertThat(resultado.get().getNombre()).isEqualTo("Actualizado");
-        }
+    @Test
+    void actualizarExistente() {
+        Reserva datos = recurso();
+        datos.setNombre("Actualizado");
+        when(repository.findById(1L)).thenReturn(Optional.of(recurso()));
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        Optional<Reserva> resultado = service.update(1L, datos);
+        assertThat(resultado).isPresent();
+        assertThat(resultado.get().getNombre()).isEqualTo("Actualizado");
+    }
 
     @Test
     void actualizarInexistente() {
