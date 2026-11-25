@@ -52,7 +52,7 @@ else
     --environment "${ENV_VARS}" \
     --region "${AWS_REGION}" >/dev/null
 
-  aws lambda wait function-active-v2 \
+  aws lambda wait function-active \
     --function-name "${FUNCTION_NAME}" \
     --region "${AWS_REGION}"
 fi
@@ -73,6 +73,11 @@ if [[ -n "${SQS_RESERVAS_QUEUE_ARN}" ]]; then
       --event-source-arn "${SQS_RESERVAS_QUEUE_ARN}" \
       --batch-size 5 \
       --function-response-types "ReportBatchItemFailures" \
+      --region "${AWS_REGION}" >/dev/null 2>&1 || \
+    aws lambda create-event-source-mapping \
+      --function-name "${FUNCTION_NAME}" \
+      --event-source-arn "${SQS_RESERVAS_QUEUE_ARN}" \
+      --batch-size 5 \
       --region "${AWS_REGION}" >/dev/null
   else
     echo "== Trigger SQS -> Lambda ya configurado (UUID=${EXISTING_UUID}) =="
